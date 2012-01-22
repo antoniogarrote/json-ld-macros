@@ -1,0 +1,42 @@
+.CodeMirror-scroll {
+    height: 500px
+}
+
+.ex-editor {
+    margin-top: 10px;
+    border-width: 1px;
+    border-style: solid;
+    border-color: #ccc
+}
+
+.ex-editor-title {
+    border-bottom-width: 1px;
+    border-bottom-style: solid;
+    border-bottom-color: #ccc
+}
+
+#header {
+    margin-top: 20px;
+    margin-bottom: 10px;
+    border-bottom-width: 1px;
+    border-bottom-style: solid;
+    border-bottom-color: #ccc
+}
+
+#header button {
+    margin-bottom: 10px
+}
+
+#header-actions {
+    margin-top: 5px
+}
+
+#header-actions button {
+    float: right;
+    margin-right: 20px
+}
+
+#output {
+    min-height: 300px;
+    padding: 10px
+}
