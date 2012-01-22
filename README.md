@@ -72,7 +72,7 @@ Paths are chains of names identifying JSON objects propertes separated by '.' ch
 - '$': Selects the root of the document. It can be a single JSON object if the document includes a single object or a collection of objects if the root object in the document is an array.
 - '*': Selects all the objects linked to any property of the selected nodes.
 - '..': Recursive evaluation of the rest of the path expression.
-- 'propertyName[*]': if 'propertyName' returns an array of objects, 'propertyName[*]' aggregates all the objects in the selected arrays.
+- 'propertyName[ * ]': if 'propertyName' returns an array of objects, 'propertyName[*]' aggregates all the objects in the selected arrays.
 
 
 Evaluation of the selector is accomplished from left to right. For every component in the path, it is evaluated in the current set of selected nodes. After evaluation, the selected nodes set is replaced by the output of the evaluation. The set of selected nodes start with the empty set.
@@ -95,18 +95,18 @@ Additional functions can be declared in the API definition.
 
 This is a description of the different transformations
 
-#### @context
+### @context
 
 Defines a context JSON-LD object that is inserted in the target object. The body of the rule is the JSON object defining the JSON-LD context that will be inserted
 
-#### @id 
+### @id 
 
 Defines how the @id JSON-LD attribute will be generated in the transformed object. Possible rule values can be:
 
 - JSON string: a fixed string that will be inserted as the value of the @id property in all the nodes
 - An array of functions that will be applied to each selected node to obtain the value of the @id JSON-LD object.
 
-#### @type
+### @type
 
 Defines how the @type JSON-LD attribute will be generated in the transformed object. Possible rule values can be:
 
@@ -114,20 +114,20 @@ Defines how the @type JSON-LD attribute will be generated in the transformed obj
 - JSON array: an array of fixed strings that will be inserted as the value of the @type property in all the nodes
 - An array of functions that will be applied to each selected node to obtain the value of the @id JSON-LD object.
 
-#### @transform
+### @transform
 
 Defines a generic transformation for a property of the selected nodes that will be applied to the initial value of the property to obtain the final value for that property in the transformed object.
 The body of the rule must be a JSON object with a single key with the name of the property to transform and a value containing the array of function to apply to the initial value.
 
-#### @remove
+### @remove
 
 This rule can be used to delete properties of the selected nodes. Possible values are a single string with the name of the property to remove or an array of properties that will be removed.
 
-#### @only
+### @only
 
 Collects a set of properties from the selected nodes and delete the remaining properties. Possible values for the this rule body are a single property to select or an array witht the properties that must be collected.
 
-#### @ns
+### @ns
 
 This rule transforms the names of the properties in the selected nodes. The rule body consist of an object containgin functions that will be applied to the object property names to obtain the final properties. This rule is applied after all other rules have been applied. When referring to property names in other rules, the name of the property before applying this rule must be used.
 Possible functions that can be used in the rule body are:
@@ -189,7 +189,7 @@ Function will receive three arguments, the function argument declared in the rul
 
 ## RDFStore-JS integration
 
-One goal in the development of the library was to make it easier to consume non RDF APIs from web applications using [RDFStore-JS]() in the data layer. Once a API has been registered in the library, an instance of RDFStore-JS can be wrapped using the *wrapRDFStoreJSNetworkTransport* function.The wrapped store instance will use then the library to transform JSON objects loaded by the store using the *load* or a SPARQL "LOAD" query, matching one the registered API service URIs templates.
+One goal in the development of the library was to make it easier to consume non RDF APIs from web applications using [RDFStore-JS](https://github.com/antoniogarrote/rdfstore-js) in the data layer. Once a API has been registered in the library, an instance of RDFStore-JS can be wrapped using the *wrapRDFStoreJSNetworkTransport* function.The wrapped store instance will use then the library to transform JSON objects loaded by the store using the *load* or a SPARQL "LOAD" query, matching one the registered API service URIs templates.
 
 
 ## Author an license
