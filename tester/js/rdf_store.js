@@ -29746,7 +29746,7 @@ QueryEngine.QueryEngine.prototype.denormalizeBindingsList = function(bindingsLis
     var results = [];
 
     for(var i=0; i<bindingsList.length; i++) {
-        result = this.denormalizeBindings(bindingsList[i], env)
+        var result = this.denormalizeBindings(bindingsList[i], env)
         results.push(result);
     }
     return(results);
@@ -29790,9 +29790,8 @@ QueryEngine.QueryEngine.prototype.copyDenormalizedBindings = function(bindingsLi
 };
 
 QueryEngine.QueryEngine.prototype.denormalizeBindings = function(bindings, env, callback) {
-    var envOut =  env.outCache;
     var variables = Utils.keys(bindings);
-
+    var envOut = env.outCache;
     for(var i=0; i<variables.length; i++) {
         var oid = bindings[variables[i]];
         if(oid == null) {
@@ -29804,8 +29803,8 @@ QueryEngine.QueryEngine.prototype.denormalizeBindings = function(bindings, env, 
             } else {
                 var val = this.lexicon.retrieve(oid);
                 bindings[variables[i]] = val;
-		if(val.token === 'blank')  {
-		    env.blanks[val.value] = oid;		    
+		if(val.token === 'blank') {
+		    env.blanks[val.value] = oid;
 		}
             }
         }
@@ -30756,7 +30755,6 @@ QueryEngine.QueryEngine.prototype._executeModifyQuery = function(aqt, queryEnv, 
 
             that.executeSelect(aqt, queryEnv, defaultGraph, namedGraph, function(success, result) {                
                 if(success) {                    
-		    debugger;
                     var result = that.denormalizeBindingsList(result, queryEnv);
                     if(result!=null) {
                         bindings = result;
@@ -30894,7 +30892,6 @@ QueryEngine.QueryEngine.prototype._executeQuadDelete = function(quad, queryEnv) 
 };
 
 QueryEngine.QueryEngine.prototype._executeClearGraph = function(destinyGraph, queryEnv, callback) {
-    debugger;
     if(destinyGraph === 'default') {
         this.execute("DELETE { ?s ?p ?o } WHERE { ?s ?p ?o }", callback);
     } else if(destinyGraph === 'named') {
@@ -31933,7 +31930,7 @@ var MongodbQueryEngine = { MongodbQueryEngine: function(){ throw 'MongoDB backen
 /**
  * Version of the store
  */
-Store.VERSION = "0.5.10";
+Store.VERSION = "0.5.11";
 
 /**
  * Create a new RDFStore instance that will be
