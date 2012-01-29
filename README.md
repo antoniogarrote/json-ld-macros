@@ -148,10 +148,17 @@ New functions can be defined in the API declaration using a prefixed name for th
 A collection of functions are already available for transformations:
 
 - 'f:valueof': selects the value of function argument in the context object and returns it.
+- 'f:defaultvalue': sets a default value if the current value in the function application chain is null
 - 'f:select': selects the value of the function argument in the input object and returns it.
 - 'f:prefix': adds a prefix passed as the function argument and add it to the input object before returning it.
 - 'f:urlencode': Performs URL encoding into the input object. The function argument is ignored.
 - 'f:apply': Accepts a string of JavaScript code as the function argument, evaluates it and applies the resulting function to the input object. Evaluation is scoped with the input object using code like: (new Function('with(this) { return '+functionArgumentTexT+';}')).call(inputObject)
+
+## Null properties and function application exception
+
+One main problem when applying transformations with null properties. Some object in the input data may have optional values, or the application of a function may return an unexpected null value. The library can react to this events in two different ways depending of the value of the 'behaviour' property. If the 'behaviour' property is set to the value 'loose', exceptions in the application of function chains will be catched and a null value will be returned as the result of the function chain application. Additionally, after transforming a node, properties with null values will be removed, including the '@id' property.
+
+If the value of the 'behaviour' property is set to 'strict', exceptions will not be catched and final values of the transformations will be returned including null values.
 
 
 ## Function declarations
