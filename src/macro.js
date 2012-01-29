@@ -4,23 +4,26 @@ if(typeof(module) === 'undefined') {
 	__export: function(obj) {
 	    window['jsonld_macros'] = obj;
 	}
-    }
+    };
 } else if(typeof(module) !== 'undefined' && module.exports == null) {
     window.module = {
 	__export: function(obj) {
 	    window['jsonld_macros'] = obj;
 	}
-    }
+    };
 } else {
     module.__export = function(obj) {
 	module.exports = obj;
-    }
+    };
 }
 
 module.__export((function() {
     var JSONLDMacro = {};
 
-    JSONLDMacro.VERSION = "0.0.1";
+    JSONLDMacro.VERSION = "0.0.2";
+
+    // Default behaviour
+    JSONLDMacro.behaviour = "loose";
 
     // Map of registered functions
     JSONLDMacro.registeredFunctions = {};
@@ -128,6 +131,12 @@ module.__export((function() {
 		    nsTransformation(node);
 	    }
 	    delete node[prefix];
+	    if(JSONLDMacro.behaviour === "loose") {
+		for(var p in node) {
+		    if(node[p] == null)
+			delete node[p];
+		}
+	    }
 	}
 
 	return document;
@@ -144,8 +153,11 @@ module.__export((function() {
 	if(pathExpression[pathExpression.length-1] === '.')
 	    parts.pop();
 
-	if(parts[0] !== '$')
-	    throw "Error parsing path. Path must start with the root object '$'";
+	if(parts[0] !== '$' && parts[0] !== '$[*]') {
+	    throw "Error parsing path. Path must start with the root object '$'";	    
+	} else {
+	    parts[0] = '$';	    
+	}
 
 	return function(obj, f) {
 	    var nextSelection, val, selectArray;
@@ -318,7 +330,7 @@ module.__export((function() {
 	for(var p in specifications) {
 	    specification = specifications[p];
 	    if(typeof(specification) === 'string') {
-		specifications[p] = (function(p,v) { return function(obj) { obj[p] = v; return obj } })(p,specification);
+		specifications[p] = (function(p,v) { return function(obj) { obj[p] = v; return obj; }; })(p,specification);
 	    } else {
 
 		var operations = specification;
@@ -328,13 +340,23 @@ module.__export((function() {
 		specifications[p] =  (function(p, operations){
 		    return function(obj) {
 			var id;
-			for(var i=0; i<operations.length; i++) {
-			    if(id!=null && id.constructor === Array) {
-				for(var j=0; j<id.length; j++) {
-				    id[j] = JSONLDMacro.applyOperation(operations[i], id[j], obj);
+			try {
+			    for(var i=0; i<operations.length; i++) {
+				if(id!=null && id.constructor === Array) {
+				    for(var j=0; j<id.length; j++) {
+					id[j] = JSONLDMacro.applyOperation(operations[i], id[j], obj);
+				    }
+				} else {
+				    id = JSONLDMacro.applyOperation(operations[i], id, obj);
 				}
+			    }
+			} catch (e) {
+			    if(JSONLDMacro.behaviour === 'loose') {
+				if(typeof(console) != undefined)
+				    console.log("Error applying function at property "+p+" -> "+e);
+				id = null;
 			    } else {
-				id = JSONLDMacro.applyOperation(operations[i], id, obj);
+				throw(e);
 			    }
 			}
 		    
@@ -549,12 +571,21 @@ module.__export((function() {
 	    operations = [operations];
 
 	return function(obj) {
-	    var id;
-	    for(var i=0; i<operations.length; i++) {
-		id = JSONLDMacro.applyOperation(operations[i], id, obj);
-	    }
+	    try {
+		var id;
+		for(var i=0; i<operations.length; i++) {
+		    id = JSONLDMacro.applyOperation(operations[i], id, obj);
+		}
 	    
-	    obj['@id'] = id;
+		obj['@id'] = id;
+	    } catch (e) {
+		if(JSONLDMacro.behaviour === 'strict') {
+		    throw e;
+		} else {
+		    if(typeof(console) !== 'undefined')
+			console.log("Error applyting transformation for @id rule: "+e);
+		}
+	    }
 	    return obj;
 	};
     };
@@ -690,6 +721,8 @@ module.__export((function() {
     JSONLDMacro.applyOperation = function(operation, input, context) {
 	if(operation['f:valueof']!=null) {
 	    return context[operation['f:valueof']];
+	} else if(operation['f:defaultvalue'] != null) {
+	    return operation['f:defaultvalue'];
 	} else if(operation['f:select']!=null) {
 	    return input[operation['f:select']];
 	} else if(operation['f:prefix']!=null) {

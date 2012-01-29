@@ -25,6 +25,26 @@ var user = {
   "type": "User"
 };
 
+var optionalUser = {
+  "login": "octocat",
+  "id": 1,
+  "gravatar_id": "somehexcode",
+  "url": "https://api.github.com/users/octocat",
+  "name": "monalisa octocat",
+  "company": "GitHub",
+  "blog": null,
+  "location": "San Francisco",
+  "email": "octocat@github.com",
+  "hireable": false,
+  "bio": "There once was...",
+  "public_repos": 2,
+  "public_gists": 1,
+  "followers": 20,
+  "following": 0,
+  "created_at": "2008-01-14T04:33:35Z",
+  "type": "User"
+};
+
 var authenticatedUser = {
   "login": "octocat",
   "id": 1,
@@ -153,4 +173,88 @@ exports.transformation3 = function(test) {
 	    });
 	});
     });
+};
+
+exports.transformation4 = function(test) {
+    var transformationSpecification = {
+	'$': { '@ns':{ 'ns:default': 'gh' },
+	       '@context': { 'gh': 'http://socialrdf.org/github/'},
+	       '@type': {'f:defaultvalue': 'http://test.com/vocabulary/Thing'} }
+    };
+
+    var jsonld = macro.transform(transformationSpecification, JSON.parse(JSON.stringify(user)));
+
+    test.ok(jsonld['@type'] === 'http://test.com/vocabulary/Thing');
+    test.done();
+};
+
+
+exports.transformation5 = function(test) {
+    
+    var transformationSpecification = {
+	'$': {
+	    '@id': {'f:valueof': 'url'},
+	    '@type': [
+		{'f:valueof':'type'},
+		{'f:prefix':'https://api.github.com/types#'}],
+	    '@transform': {
+		'gravatar_id': [{'f:valueof': 'gravatar_id'},
+				{'f:prefix':'http://gravatar/something/'},
+			        {'f:apply': 'this will throw an exception'}]
+	    },
+	    '@ns': {'ns:default': 'gh',
+		    'ns:replace': {'login': 'foaf:nick',
+				   'email': 'foaf:mbox',
+				   'name': 'foaf:name',
+				   'avatar_url': 'foaf:depiction',
+				   'gravatar_id': 'foaf:depiction',
+				   'blog': 'foaf:homepage',
+				   'html_url': 'foaf:homepage'}},
+	    '@remove': ['type', 'id', 'url'],
+	    '@context': {'foaf':'http://xmlns.com/foaf/0.1/',
+			 'gh': 'http://socialrdf.org/github/',
+			 'xsd': 'http://www.w3.org/2001/XMLSchema#',
+			 'foaf:depiction': { '@type': '@id' },
+			 'foaf:homepage': {'@type': '@id'},
+			 'gh:created_at': {'@type': 'xsd:date'} 
+			}
+	     }
+    };
+
+    var transformation = macro.buildTransformation(transformationSpecification);
+    var jsonld = macro.applyTransformation(transformation, JSON.parse(JSON.stringify(optionalUser)));
+
+    test.ok(jsonld['foaf:homepage'] === undefined);
+
+
+    var foundException = false;
+    try {
+	macro.behaviour = "strict";
+	jsonld = macro.applyTransformation(transformation, JSON.parse(JSON.stringify(optionalUser)));
+    } catch (x) {
+	foundException = true;
+    }
+    test.ok(foundException);
+    macro.behaviour = "loose";
+    test.done();
+};
+
+exports.transformation6 = function(test) {
+    var transformationSpecification = {
+	'$': { '@ns':{ 'ns:default': 'gh', 
+		       'ns:replace': {'login': 'foaf:a',
+				      'email': 'foaf:a',
+				      'name': 'foaf:a',
+				      'avatar_url': 'foaf:a',
+				      'gravatar_id': 'foaf:a',
+				      'blog': 'foaf:a',
+				      'html_url': 'foaf:a'}},
+	       '@context': { 'gh': 'http://socialrdf.org/github/'},
+	       '@type': {'f:defaultvalue': 'http://test.com/vocabulary/Thing'} }
+    };
+
+    var jsonld = macro.transform(transformationSpecification, JSON.parse(JSON.stringify(user)));
+
+    test.ok(jsonld['foaf:a'].length === 7);
+    test.done();
 };
