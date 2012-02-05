@@ -528,7 +528,7 @@ module.__export((function() {
      */
     JSONLDMacro._buildTypeGenTransformation = function(body) {
 	if(typeof(body) === 'string') {
-	    return function(obj) { obj['@type'] = body; return obj };
+	    return function(obj) { obj['@type'] = body; return obj; };
 	}
 	var operations = body;
 	if(typeof(operations) === 'object' && operations.constructor === Object)
@@ -553,7 +553,7 @@ module.__export((function() {
 		return obj;
 	    };
 	} else {
-	    return function(obj){ obj['@type'] = operations; return obj };
+	    return function(obj){ obj['@type'] = operations; return obj; };
 	}
     };
 
@@ -564,7 +564,7 @@ module.__export((function() {
      */
     JSONLDMacro._buildIDGenTransformation = function(body) {
 	if(typeof(body) === 'string') {
-	    return function(obj) { obj['@id'] = body; return obj };
+	    return function(obj) { obj['@id'] = body; return obj; };
 	}
 	var operations = body;
 	if(typeof(operations) === 'object' && operations.constructor === Object)

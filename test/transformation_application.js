@@ -258,3 +258,25 @@ exports.transformation6 = function(test) {
     test.ok(jsonld['foaf:a'].length === 7);
     test.done();
 };
+
+exports.transformation7 = function(test) {
+    var transformationSpecification = {
+	'$': { '@ns':{ 'ns:default': 'gh'},
+	       '@context': { 'gh': 'http://socialrdf.org/github/'},
+	       '@type': ["http://test.com/classes/A", "http://test.com/classes/B"] }
+    };
+
+    var jsonld = macro.transform(transformationSpecification, {'hello':'world'});
+
+    rdfstore.create(function(store) {
+	store.load('application/json', jsonld, function(err, loaded) {
+	    store.execute("SELECT * { ?s a <http://test.com/classes/A> }", function(success, results) {
+		test.ok(results.length === 1);
+		store.execute("SELECT * { ?s a <http://test.com/classes/B> }", function(success, results) {
+		    test.ok(results.length === 1);
+		    test.done();
+		});
+	    });
+	});
+    });
+};
