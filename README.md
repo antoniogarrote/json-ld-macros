@@ -2,7 +2,7 @@
 
 JSON-LD Macros is a library to define declarative transformations of JSON objects obtained from a remote web service into JSON-LD objects. The ultimate goal of the library is to make it easier the process of consuming JSON APIs from RDF/JSON-LD applications. Similar ideas for transforming JSON documents into RDF have been explored in projects like [jsonGRDDL](http://buzzword.org.uk/2008/jsonGRDDL/spec.20100903).
 
-A demo is available [here](http://ariutta.github.io/json-ld-macros/) .
+A demo is available [here](http://ariutta.github.io/json-ld-macros/tester/) .
 
 ## A Minimal example
 
