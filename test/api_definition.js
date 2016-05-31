@@ -35,7 +35,6 @@ exports.defineAPI = function(test) {
     });
     var res1 = macro.resolve('https://api.github.com/users/1?this=will&be=ignored', {'name': 'octocat'});
     var res2 = macro.resolve('https://api.github.com/users/1/commits/234a232bc2', {'name': 'test commit'});
-
     rdfstore.create(function(err, store) {
 	store.load('application/json', res1, function(err, loaded) {
 	    store.load('application/json', res2, function(err, loaded) {
@@ -111,3 +110,31 @@ exports.defineAPI3 = function(test) {
 
     test.done();
 };
+
+
+exports.defineAPI4 = function(test) {
+    macro.clearAPIs();
+    macro.registerAPI({
+
+	"https://api.github.com/users/{username}":
+	{
+	    '$': {'@ns': {'ns:default': 'gh'},
+	          '@context': {'gh':'http://socialrdf.org/github/'},
+	          '@type': 'http://socialrdf.org/github/User'},
+            "$.starred_url": {
+                '@explode': "@id",
+                "@transform": {
+                    "@id": [ {'f:valueof':'@id'},
+                             {'f:basetemplateurl': true} ]
+                }
+            }
+	}
+    });
+
+    var res1 = macro.resolve('https://api.github.com/users/1', {'starred_url': 'https://api.github.com/users/octocat/starred{/owner}{/repo}'});
+
+    test.ok(res1 != null);
+    test.ok(res1['gh:starred_url']["@id"] === 'https://api.github.com/users/octocat/starred');
+
+    test.done();
+}

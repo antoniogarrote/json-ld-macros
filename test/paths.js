@@ -63,7 +63,8 @@ exports.testPath1 = function(test) {
     var parsed = parse(commit);
 
     test.ok(parsed.length == 1);
-    test.ok(parsed[0] === "7638417db6d59f3c431d3e1f261cc637155684cd");
+    test.ok(parsed[0].node === "7638417db6d59f3c431d3e1f261cc637155684cd");
+    test.ok(parsed[0].parent["sha"] === "7638417db6d59f3c431d3e1f261cc637155684cd");
 
     parse(commit, function(val, obj) {
 	test.ok(val === obj['sha']);
@@ -75,7 +76,8 @@ exports.testPath2 = function(test) {
     var parse = macro.pathParser("$.committer");
     var parsed = parse(commit);
     test.ok(parsed.length == 1);
-    test.ok(parsed[0]['name'] === "Scott Chacon");
+    test.ok(parsed[0].node['name'] === "Scott Chacon");
+    test.ok(parsed[0].parent["committer"]['name'] === "Scott Chacon");
 
     parse(commit, function(val, obj) {
 	test.ok(val['name'] === obj['committer']['name']);
@@ -85,10 +87,10 @@ exports.testPath2 = function(test) {
 
 exports.testPathLength2 = function(test) {
     var parse = macro.pathParser("$.author.email");
-    
+
     var result = parse(commit);
     test.ok(result.length == 1);
-    test.ok(result[0] == "schacon@gmail.com");
+    test.ok(result[0].node == "schacon@gmail.com");
 
     parse(commit, function(val, obj) {
 	test.ok(val, obj['email']);
@@ -102,7 +104,7 @@ exports.testPath3 = function(test) {
     var result = parse(references);
     test.ok(result.length === 3);
     for(var i=0; i<result.length; i++) {
-	test.ok(result[i].indexOf("https://")===0);
+	test.ok(result[i].node.indexOf("https://")===0);
     }
     test.done();
 }
@@ -112,7 +114,7 @@ exports.testComplexPath1 = function(test) {
     var result = parse(commit);
 
     test.ok(result.length === 3);
-  
+
     var counter = 0;
     parse(commit, function(val, obj) {
 	test.ok(val === obj['url']);
@@ -127,7 +129,7 @@ exports.testComplexPath1 = function(test) {
 exports.testComplexPath2 = function(test) {
     var parse = macro.pathParser("$..");
     var result = parse(commit);
-    
+
     test.ok(result.length === 5);
     test.done();
 };
@@ -136,6 +138,7 @@ exports.testCollectObjects = function(test) {
     var parse = macro.pathParser("$.object");
 
     var result = parse(references);
+
     test.ok(result.length === 3);
     test.done();
 }

@@ -81,10 +81,12 @@ Evaluation of the selector is accomplished from left to right. For every compone
 
 ### Transformation Rules
 
-Transformation rules are JSON objects where the keys of the object identified certain standard transformations that can be performed in the input object and the values describe particular details of the transformation rule. A fixed set of transformation rules is available: "@context", "@id", "@type", "@remove", "@only", "@ns" and "@transform".
+Transformation rules are JSON objects where the keys of the object identified certain standard transformations that can be performed in the input object and the values describe particular details of the transformation rule. A fixed set of transformation rules is available: "@explode", "@compact", "@context", "@id", "@type", "@add", "@remove", "@only", "@ns" and "@transform".
 
 Rules are applied in the following order:
 
+- @explode, @compact
+- @add
 - @context, @id, @type, @transform
 - @remove
 - @only
@@ -96,9 +98,47 @@ Additional functions can be declared in the API definition.
 
 This is a description of the different transformations
 
+### @explode
+
+Transforms a pair property - value into  a pair property - nested object where the nested object has only the property value with a property specified in the transformation.
+
+// input node
+- {"contact_url": "http://test.com/people/dmm4"}
+
+// rule
+- {"@explode": "@id"}
+
+// output node
+- {"contact_url": { "@id": "http://test.com/people/dmm4"} }
+
+
+### @compact
+
+Transforms a pair property - node into a pair property - value where the value is the value of the selected property in the node.
+
+// input node
+{"contact_url": {"$ref": "http://test.com/people/dmm4"}}
+
+// rule
+{"@compact": "$ref"}
+
+// output node
+{"contact_url": "http://test.com/people/dmm4"}
+
 ### @context
 
 Defines a context JSON-LD object that is inserted in the target object. The body of the rule is the JSON object defining the JSON-LD context that will be inserted
+
+// input node
+{"contact_url": "http://test.com/people/dmm4"}
+
+// rule
+{"@context": {"contact_url": { "@id": "foaf:knowks", "@type": "@id"}, "foaf":"http://xmlns.com/foaf/0.1/" }
+
+// output node
+
+{"@context": {"contact_url": { "@id": "foaf:knowks", "@type": "@id"}, "foaf":"http://xmlns.com/foaf/0.1/"  },
+ "contact_url": "http://test.com/people/dmm4" }
 
 ### @id
 
@@ -133,10 +173,10 @@ Collects a set of properties from the selected nodes and delete the remaining pr
 This rule transforms the names of the properties in the selected nodes. The rule body consist of an object containgin functions that will be applied to the object property names to obtain the final properties. This rule is applied after all other rules have been applied. When referring to property names in other rules, the name of the property before applying this rule must be used.
 Possible functions that can be used in the rule body are:
 
-- 'ns:default': the value of this function is a default prefix that will be preppended to all the properties in the current node to transform them into CURIEs
-- 'ns:append': accepts an object with prefixes as keys and a property name or array of property names as value. When applied, this function preppends the prefix to all the selected property names.
+- 'ns:default': the value of this function is a default prefix that will be prepended to all the properties in the current node to transform them into CURIEs
+- 'ns:append': accepts an object with prefixes as keys and a property name or array of property names as value. When applied, this function prepends the prefix to all the selected property names.
 - 'ns:replace': Similar to 'ns:append', but instead of a prefix, it accepts as key fo the rule body object a string that will replace enterily the selected property names
-- 'ns:omit': accepts a single string property name or an array of properties name that will be not affected by any other funcition in the rule body.
+- 'ns:omit': accepts a single string property name or an array of properties name that will be not affected by any other function in the rule body.
 
 ## Functions
 
@@ -153,6 +193,7 @@ A collection of functions are already available for transformations:
 - 'f:prefix': adds a prefix passed as the function argument and add it to the input object before returning it.
 - 'f:urlencode': Performs URL encoding into the input object. The function argument is ignored.
 - 'f:apply': Accepts a string of JavaScript code as the function argument, evaluates it and applies the resulting function to the input object. Evaluation is scoped with the input object using code like: (new Function('with(this) { return '+functionArgumentTexT+';}')).call(inputObject)
+- 'f:basetemplateurl': Transforms a URL template with terminal variables into the base URL without the variables. e.g.: 'https://api.github.com/users/octocat/starred{/owner}{/repo}' becomes 'https://api.github.com/users/octocat/starred'
 
 ## Null properties and function application exception
 

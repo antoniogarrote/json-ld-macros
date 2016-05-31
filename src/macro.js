@@ -81,8 +81,8 @@ module.__export((function() {
 	var prefix = JSONLDMacro.reservedPrefix+(new Date()).getTime()+"__";
 	var mapping = {};
 	var transformationMapping = {};
-	var node, pathSelector, transformationFn, selectedNodes, nodeCounter, transformationFns, transformations;
-	var removeTransformation, nsTransformation, onlyTransformation;
+	var node, nodeInfo, nodeParent, pathSelector, transformationFn, selectedNodes, nodeCounter, transformationFns, transformations;
+	var removeTransformation, nsTransformation, onlyTransformation, explodeTransformation;
 
 	for(var i=0; i<transformation.length; i++) {
 	    pathSelector = transformation[i][0];
@@ -90,11 +90,10 @@ module.__export((function() {
 
 
 	    selectedNodes = pathSelector(document);
-
 	    for(var j=0; j<selectedNodes.length; j++) {
-		nodeCounter = selectedNodes[j][prefix];
+		nodeCounter = selectedNodes[j].node[prefix];
 		if(nodeCounter == null)  {
-		    selectedNodes[j][prefix] = counter;
+		    selectedNodes[j].node[prefix] = counter;
 		    mapping[counter] = selectedNodes[j];
 		    transformationMapping[counter] = [];
 		    nodeCounter = counter;
@@ -105,15 +104,35 @@ module.__export((function() {
 	}
 
 	for(var c in mapping) {
-	    node = mapping[c];
+	    nodeInfo = mapping[c];
+            node = nodeInfo.node;
+            nodeParent = nodeInfo.parent;
 	    transformations = transformationMapping[c];
 
 	    for(i=0; i<transformations.length; i++) {
 		transformation = transformations[i];
+                explodeTransformation = transformation["@explode"];
 		removeTransformation = transformation['@remove'];
 		onlyTransformation = transformation['@only'];
 		nsTransformation = transformation['@ns'];
 
+                if(explodeTransformation != null) {
+                    var transformed = explodeTransformation(node);
+                    transformed[prefix] = node[prefix];
+                    var found = false;
+                    for(var p in nodeParent) {
+                        if(nodeParent[p] == node) {
+                            nodeParent[p] = transformed;
+                            found = true;
+                        }
+                    }
+                    if(found) {
+                        node = transformed;
+                        nodeInfo.node = node;
+                    } else {
+                        throw("Cannot find exploded node in parent node");
+                    }
+                }
 
 		for(var name in transformation) {
 		    if(name !== '@remove' &&
@@ -163,7 +182,14 @@ module.__export((function() {
 
 	return function(obj, f) {
 	    var nextSelection, val, selectArray;
-	    var selection = (obj.constructor === Array) ? obj : [obj];
+	    if (obj.constructor === Array) {
+                var selection = [];
+                for(var i=0; i<obj.length; i++) {
+                    selection.push({parent:null, node:obj[i]});
+                }
+            } else {
+              var selection = [{parent:null, node:obj}];
+            }
 	    var currentCounter = 0;
             var i,p = 0;
 
@@ -181,15 +207,16 @@ module.__export((function() {
 		case '*':
 		    nextSelection = [];
 		    for(i=0; i<selection.length; i++) {
-			for(p in selection[i]) {
-			    nextSelection.push(selection[i][p]);
+                        var node = selection[i].node;
+			for(p in node) {
+			    nextSelection.push({parent:node, node: node[p]});
 			}
 		    }
 		    break;
 		case '':
 		    nextSelection = [];
 		    for(i=0; i<selection.length; i++) {
-			nextSelection = nextSelection.concat(JSONLDMacro._childrenRecursive(selection[i]));
+			nextSelection = nextSelection.concat(JSONLDMacro._childrenRecursive(selection[i].parent, selection[i].node));
 		    }
 		    break;
 		default:
@@ -201,20 +228,25 @@ module.__export((function() {
 			selectArray = false;
 		    }
 		    for(i=0; i<selection.length; i++) {
-			val = selection[i][currentPart];
+                        var node = selection[i].node;
+			var val = node[currentPart];
 			if(val !== undefined) {
 			    if(selectArray && val.constructor === Array) {
-				nextSelection = nextSelection.concat(val);
+                                var nextSelectionArray = [];
+                                for(i=0; i<val.length; i++) {
+                                    nextSelectionArray.push({parent:node.node, node:val[i]});
+                                }
+				nextSelection = nextSelection.concat(nextSelectionArray);
 			    } else {
-				nextSelection.push(val);
+				nextSelection.push({parent:node, node:val});
 			    }
 			    if(currentCounter === parts.length-1 && f!=null) {
 				if(selectArray && val.constructor === Array) {
 				    for(var j=0; j<val.length; j++) {
-					f(vaj[j], selection[i]);
+					f(val[j], selection[i].node);
 				    }
 				} else {
-				    f(val, selection[i]);
+				    f(val, selection[i].node);
 				}
 			    }
 			}
@@ -230,7 +262,7 @@ module.__export((function() {
 
 	    if(f != null) {
 		for(i=0; i<selection.length; i++) {
-		    f(selection[i], null);
+		    f(selection[i].node, null);
 		}
 	    }
 
@@ -241,21 +273,25 @@ module.__export((function() {
     /**
      * @doc
      * Recursively collect all the children objects of a
-     * node passes as the function argument.
+     * node passed as the function argument.
      */
-    JSONLDMacro._childrenRecursive = function(obj) {
+    JSONLDMacro._childrenRecursive = function(parent, obj) {
 	var children = [];
-	var pending = [obj];
+	var pending = [{parent:parent, node:obj}];
 	var next;
 
 	while(pending.length != 0) {
 	    next = pending.pop();
 	    children.push(next);
-	    for(var p in next) {
-		if(typeof(next[p]) === 'object' && next[p].constructor === Object) {
-		    pending.push(next[p]);
-		} else if(typeof(next[p]) === 'object' && next[p].constructor === Array) {
-		    pending = pending.concat(next[p]);
+	    for(var p in next.node) {
+		if(typeof(next.node[p]) === 'object' && next.node[p].constructor === Object) {
+		    pending.push({parent:next.node, node:next.node[p]});
+		} else if(typeof(next.node[p]) === 'object' && next.node[p].constructor === Array) {
+                    var children = [];
+                    for(var i=0; i<next.node[p].length; i++) {
+                        children.push({parent:next.node, node:next.node[p][i]});
+                    }
+		    pending = pending.concat(children);
 		}
 	    }
 	}
@@ -319,9 +355,25 @@ module.__export((function() {
 	case '@transform':
 	    return this._buildTransformTransformation(body);
 
+        case '@explode':
+            return this._buildExplodeTransformation(body);
+
 	default:
 	    throw("Unknown transformation: "+name);
 	}
+    };
+
+    JSONLDMacro._buildExplodeTransformation = function(specification) {
+        if(typeof(specification) === "string") {
+            var property = specification;
+            return function(value) {
+                var node = {};
+                node[property] = value;
+                return node;
+            };
+        } else {
+            throw "@explode rule accepts only a string as the body of the specification";
+        }
     };
 
     /**
@@ -732,6 +784,8 @@ module.__export((function() {
 	    return operation['f:prefix'] + input;
 	} else if(operation['f:urlencode']!=null) {
 	    return escape(input);
+        } else if(operation['f:basetemplateurl'] != null) {
+            return input.split("{")[0];
 	} else if(operation['f:apply']!=null) {
 	    var src = operation['f:apply'];
 	    return (new Function( "with(this) { return " + operation['f:apply'] + "}")).call(input);

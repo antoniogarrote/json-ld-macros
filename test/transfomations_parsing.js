@@ -41,8 +41,8 @@ exports.testContextTranformation = function(test) {
     test.ok(context[objIdx]['a'] === 'b');
 
     // array context without object
-    fn = macro.buildTransformationFunction("@context",["http://example.org/json-ld-contexts/person1", 
-						       "http://example.org/json-ld-contexts/person2"])    
+    fn = macro.buildTransformationFunction("@context",["http://example.org/json-ld-contexts/person1",
+						       "http://example.org/json-ld-contexts/person2"]);
     result = fn(dup(stringContext));
     context = result['@context'].sort();
     test.ok(context[0] === 'http://example.org/json-ld-contexts/event');
@@ -67,7 +67,7 @@ exports.testContextTranformation = function(test) {
 	} else {
 	    test.ok(context[i]['a'] === 'b');
 	}
-	    
+
     }
     test.ok(strings.length === 2);
     strings = strings.sort();
@@ -76,11 +76,11 @@ exports.testContextTranformation = function(test) {
 
 
     // array context with object
-    fn = macro.buildTransformationFunction("@context",["http://example.org/json-ld-contexts/person1", 
+    fn = macro.buildTransformationFunction("@context",["http://example.org/json-ld-contexts/person1",
 						       {'c':'d'},
-						       "http://example.org/json-ld-contexts/person2"])    
+						       "http://example.org/json-ld-contexts/person2"]);
     result = fn(dup(stringContext));
-    result = result['@context']
+    result = result['@context'];
     context = [];
     for(var i=0; i<result.length; i++) {
 	if(typeof(result[i]) === 'string') {
@@ -110,7 +110,7 @@ exports.testContextTranformation = function(test) {
     test.ok(context[1] === 'http://example.org/json-ld-contexts/person1');
     test.ok(context[2] === 'http://example.org/json-ld-contexts/person2');
     test.ok(context.length === 3);
- 
+
     result = fn(dup(objContext));
     result = result['@context']
     context = [];
@@ -128,7 +128,7 @@ exports.testContextTranformation = function(test) {
     test.ok(context.length === 2);
 
     // object
-    fn = macro.buildTransformationFunction("@context",{'c': 'd'})    
+    fn = macro.buildTransformationFunction("@context",{'c': 'd'})
     result = fn(dup(stringContext));
     result = result['@context'];
 
@@ -143,7 +143,7 @@ exports.testContextTranformation = function(test) {
     context = context.sort();
     test.ok(context[0] = 'http://example.org/json-ld-contexts/event');
     test.ok(context.length === 1);
-    
+
     result = fn(dup(arrayContext));
     result = result['@context'];
     context = [];
@@ -161,25 +161,34 @@ exports.testContextTranformation = function(test) {
     test.done();
 };
 
+exports.testExplodeTransformation = function(test) {
+    var fn = macro.buildTransformationFunction('@explode', 'test');
+    var data = "value";
+
+    var result = fn(data);
+    test.ok(result["test"] === data);
+    test.done();
+};
+
 exports.testIDGenTransformation = function(test) {
-    
+
     // tring URI
-    var fn = macro.buildTransformationFunction('@id', 'http://test.com/test')
+    var fn = macro.buildTransformationFunction('@id', 'http://test.com/test');
     var data = {};
-  
+
     var result = fn(data);
     test.ok(result['@id'] === 'http://test.com/test');
 
     // f:valueof
     fn = macro.buildTransformationFunction('@id', {'f:valueof': 'url'});
-    data = {'url':'http://test.com/test'}
+    data = {'url':'http://test.com/test'};
     result = fn(data);
     test.ok(result['@id'] === 'http://test.com/test');
 
     // f:prefix
     fn = macro.buildTransformationFunction('@id', [{'f:valueof': 'id'},
 						   {'f:prefix': 'http://test.com/'}]);
-    data = {'id':'24234234'}
+    data = {'id':'24234234'};
     result = fn(data);
     test.ok(result['@id'] === 'http://test.com/24234234');
 
@@ -190,6 +199,15 @@ exports.testIDGenTransformation = function(test) {
     data = {'name': 'Helena Martín'};
     result = fn(data);
     test.ok(result['@id'] === 'http://test.com/Helena%20Mart%EDn');
+
+    // f:basetemplateurl
+    fn = macro.buildTransformationFunction('@transform',
+                                           {'gh:starred': [{'f:valueof': 'starred_url'},
+						           {'f:basetemplateurl': true}]});
+
+    data = {"starred_url": "https://api.github.com/users/octocat/starred{/owner}{/repo}"};
+    result = fn(data);
+    test.ok(result['gh:starred'] === 'https://api.github.com/users/octocat/starred');
 
     // f:apply
     fn = macro.buildTransformationFunction('@id', [{'f:valueof': 'name'},
@@ -204,11 +222,11 @@ exports.testIDGenTransformation = function(test) {
 };
 
 exports.testTypeGenTransformation = function(test) {
-    
+
     // string URI
     var fn = macro.buildTransformationFunction('@type', 'http://test.com/Test')
     var data = {};
-  
+
     var result = fn(data);
     test.ok(result['@type'] === 'http://test.com/Test');
 
@@ -230,7 +248,7 @@ exports.testTypeGenTransformation = function(test) {
 };
 
 exports.testRemoveTransformation = function(test) {
-    
+
     var fn = macro.buildTransformationFunction('@remove', 'toremove');
     var data = {'toremove': true, 'data': true};
     result = fn(data);
