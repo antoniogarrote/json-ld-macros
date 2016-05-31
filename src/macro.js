@@ -362,6 +362,9 @@ module.__export((function() {
 	case '@type':
 	    return this._buildTypeGenTransformation(body);
 
+        case '@add':
+	    return this._buildAddTransformation(body);
+
 	case '@remove':
 	    return this._buildRemoveTransformation(body);
 
@@ -559,7 +562,7 @@ module.__export((function() {
 
 	    }
 	    return obj;
-	}
+	};
     };
 
     /**
@@ -576,6 +579,19 @@ module.__export((function() {
 		delete obj[body[i]];
 	    }
 
+	    return obj;
+	};
+    };
+
+    /**
+     * @doc
+     * Builds a transformation that adds properties from the provided JSON object
+     */
+    JSONLDMacro._buildAddTransformation = function(body) {
+	return function(obj) {
+	    for(var p in body) {
+		obj[p] = body[p];
+	    }
 	    return obj;
 	};
     };
