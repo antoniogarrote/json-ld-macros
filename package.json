@@ -14,10 +14,13 @@
   "license": "MIT",
   "readmeFilename": "README.md",
   "devDependencies": {
+    "browserify": "^13.0.1",
     "gulp": "^3.9.1",
+    "gulp-clean": "^0.3.2",
     "gulp-nodeunit": "0.0.5",
     "jsonld": "^0.4.11",
-    "rdfstore": "^0.9.10"
+    "rdfstore": "^0.9.10",
+    "vinyl-source-stream": "^1.1.0"
   },
   "dependencies": {
     "uri-templates": "^0.2.0"
