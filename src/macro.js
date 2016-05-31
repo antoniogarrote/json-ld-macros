@@ -20,7 +20,7 @@ if(typeof(module) === 'undefined') {
 module.__export((function() {
     var JSONLDMacro = {};
 
-    JSONLDMacro.VERSION = "0.0.2";
+    JSONLDMacro.VERSION = "0.0.3";
 
     // Default behaviour
     JSONLDMacro.behaviour = "loose";
