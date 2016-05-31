@@ -1,6 +1,6 @@
 {
   "name": "json-ld-macros",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "Declarative transformation of JSON into JSON-LD",
   "main": "src/macro.js",
   "repository": {

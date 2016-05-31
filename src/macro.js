@@ -22,7 +22,7 @@ var uriTemplates = require('uri-templates');
 module.__export((function() {
     var JSONLDMacro = {};
 
-    JSONLDMacro.VERSION = "0.0.3";
+    JSONLDMacro.VERSION = "0.0.4";
 
     // Default behaviour
     JSONLDMacro.behaviour = "loose";
