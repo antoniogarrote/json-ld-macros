@@ -82,7 +82,7 @@ module.__export((function() {
 	var mapping = {};
 	var transformationMapping = {};
 	var node, nodeInfo, nodeParent, pathSelector, transformationFn, selectedNodes, nodeCounter, transformationFns, transformations;
-	var removeTransformation, nsTransformation, onlyTransformation, explodeTransformation;
+	var removeTransformation, nsTransformation, onlyTransformation, explodeTransformation, compactTransformation;
 
 	for(var i=0; i<transformation.length; i++) {
 	    pathSelector = transformation[i][0];
@@ -112,6 +112,7 @@ module.__export((function() {
 	    for(i=0; i<transformations.length; i++) {
 		transformation = transformations[i];
                 explodeTransformation = transformation["@explode"];
+                compactTransformation = transformation["@compact"];
 		removeTransformation = transformation['@remove'];
 		onlyTransformation = transformation['@only'];
 		nsTransformation = transformation['@ns'];
@@ -150,6 +151,24 @@ module.__export((function() {
 
 		if(nsTransformation != null)
 		    nsTransformation(node);
+
+                if(compactTransformation != null) {
+                    var compacted = compactTransformation(node);
+                    var found = false;
+                    for(var p in nodeParent) {
+                        if(nodeParent[p] == node) {
+                            nodeParent[p] = compacted;
+                            found = true;
+                        }
+                    }
+                    if(found) {
+                        node = compacted;
+                        nodeInfo.node = node;
+                    } else {
+                        throw("Cannot find compacted node in parent node");
+                    }
+                }
+
 	    }
 	    delete node[prefix];
 	    if(JSONLDMacro.behaviour === "loose") {
@@ -358,6 +377,9 @@ module.__export((function() {
         case '@explode':
             return this._buildExplodeTransformation(body);
 
+        case '@compact':
+            return this._buildCompactTransformation(body);
+
 	default:
 	    throw("Unknown transformation: "+name);
 	}
@@ -373,6 +395,17 @@ module.__export((function() {
             };
         } else {
             throw "@explode rule accepts only a string as the body of the specification";
+        }
+    };
+
+    JSONLDMacro._buildCompactTransformation = function(specification) {
+        if(typeof(specification) === "string") {
+            var property = specification;
+            return function(value) {
+                return value[property];
+            };
+        } else {
+            throw "@compact rule accepts only a string as the body of the specification";
         }
     };
 

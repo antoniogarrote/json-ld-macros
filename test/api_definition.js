@@ -137,4 +137,38 @@ exports.defineAPI4 = function(test) {
     test.ok(res1['gh:starred_url']["@id"] === 'https://api.github.com/users/octocat/starred');
 
     test.done();
+};
+
+exports.defineAPI5 = function(test) {
+    macro.clearAPIs();
+    macro.registerAPI({
+
+	"https://api.github.com/users/{username}":
+	{
+	    '$': {'@ns': {'ns:default': 'gh'},
+	          '@context': {'gh':'http://socialrdf.org/github/'},
+	          '@type': 'http://socialrdf.org/github/User'},
+            '$.starred_url': {
+                '@compact': "$ref",
+                "@remove": "rel",
+                "@transform": {
+                    '$ref': [{'f:valueof':'$ref'},
+                             {'f:basetemplateurl': true}]
+                }
+            }
+	}
+    });
+
+    var res1 = macro.resolve('https://api.github.com/users/1',
+                             {
+                                 'starred_url': {
+                                     '$ref': 'https://api.github.com/users/octocat/starred{/owner}{/repo}',
+                                     'rel': "a relationship"
+                                 }
+                             });
+
+    test.ok(res1 != null);
+    test.ok(res1['gh:starred_url'] === 'https://api.github.com/users/octocat/starred');
+
+    test.done();
 }
