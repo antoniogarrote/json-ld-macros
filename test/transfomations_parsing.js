@@ -1,4 +1,4 @@
-var macro = require('../src/macro');
+var macro = require('../src/macro').JSONLDMacro;
 
 var dup = function(data) {
     return JSON.parse(JSON.stringify(data));

@@ -1,4 +1,4 @@
-var macro = require('../src/macro');
+var macro = require('../src/macro').JSONLDMacro;
 var rdfstore = require('rdfstore');
 
 var user = {

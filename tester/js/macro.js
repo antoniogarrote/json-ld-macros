@@ -1,33 +1,495 @@
-// Detects if we are in the browser or in node
-if(typeof(module) === 'undefined') {
-    window.module = {
-	__export: function(obj) {
-	    window['jsonld_macros'] = obj;
+(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
+(function (global, factory) {
+	if (typeof define === 'function' && define.amd) {
+		define('uri-templates', [], factory);
+	} else if (typeof module !== 'undefined' && module.exports){
+		module.exports = factory();
+	} else {
+		global.UriTemplate = factory();
 	}
-    }
-} else if(typeof(module) !== 'undefined' && module.exports == null) {
-    window.module = {
-	__export: function(obj) {
-	    window['jsonld_macros'] = obj;
-	}
-    }
-} else {
-    module.__export = function(obj) {
-	module.exports = obj;
-    }
-}
+})(this, function () {
+	var uriTemplateGlobalModifiers = {
+		"+": true,
+		"#": true,
+		".": true,
+		"/": true,
+		";": true,
+		"?": true,
+		"&": true
+	};
+	var uriTemplateSuffices = {
+		"*": true
+	};
+	var urlEscapedChars = /[:/&?#]/;
 
-module.__export((function() {
+	function notReallyPercentEncode(string) {
+		return encodeURI(string).replace(/%25[0-9][0-9]/g, function (doubleEncoded) {
+			return "%" + doubleEncoded.substring(3);
+		});
+	}
+
+	function isPercentEncoded(string) {
+		string = string.replace(/%../g, '');
+		return encodeURIComponent(string) === string;
+	}
+
+	function uriTemplateSubstitution(spec) {
+		var modifier = "";
+		if (uriTemplateGlobalModifiers[spec.charAt(0)]) {
+			modifier = spec.charAt(0);
+			spec = spec.substring(1);
+		}
+		var separator = "";
+		var prefix = "";
+		var shouldEscape = true;
+		var showVariables = false;
+		var trimEmptyString = false;
+		if (modifier == '+') {
+			shouldEscape = false;
+		} else if (modifier == ".") {
+			prefix = ".";
+			separator = ".";
+		} else if (modifier == "/") {
+			prefix = "/";
+			separator = "/";
+		} else if (modifier == '#') {
+			prefix = "#";
+			shouldEscape = false;
+		} else if (modifier == ';') {
+			prefix = ";";
+			separator = ";",
+			showVariables = true;
+			trimEmptyString = true;
+		} else if (modifier == '?') {
+			prefix = "?";
+			separator = "&",
+			showVariables = true;
+		} else if (modifier == '&') {
+			prefix = "&";
+			separator = "&",
+			showVariables = true;
+		}
+
+		var varNames = [];
+		var varList = spec.split(",");
+		var varSpecs = [];
+		var varSpecMap = {};
+		for (var i = 0; i < varList.length; i++) {
+			var varName = varList[i];
+			var truncate = null;
+			if (varName.indexOf(":") != -1) {
+				var parts = varName.split(":");
+				varName = parts[0];
+				truncate = parseInt(parts[1]);
+			}
+			var suffices = {};
+			while (uriTemplateSuffices[varName.charAt(varName.length - 1)]) {
+				suffices[varName.charAt(varName.length - 1)] = true;
+				varName = varName.substring(0, varName.length - 1);
+			}
+			var varSpec = {
+				truncate: truncate,
+				name: varName,
+				suffices: suffices
+			};
+			varSpecs.push(varSpec);
+			varSpecMap[varName] = varSpec;
+			varNames.push(varName);
+		}
+		var subFunction = function (valueFunction) {
+			var result = "";
+			var startIndex = 0;
+			for (var i = 0; i < varSpecs.length; i++) {
+				var varSpec = varSpecs[i];
+				var value = valueFunction(varSpec.name);
+				if (value == null || (Array.isArray(value) && value.length == 0) || (typeof value == 'object' && Object.keys(value).length == 0)) {
+					startIndex++;
+					continue;
+				}
+				if (i == startIndex) {
+					result += prefix;
+				} else {
+					result += (separator || ",");
+				}
+				if (Array.isArray(value)) {
+					if (showVariables) {
+						result += varSpec.name + "=";
+					}
+					for (var j = 0; j < value.length; j++) {
+						if (j > 0) {
+							result += varSpec.suffices['*'] ? (separator || ",") : ",";
+							if (varSpec.suffices['*'] && showVariables) {
+								result += varSpec.name + "=";
+							}
+						}
+						result += shouldEscape ? encodeURIComponent(value[j]).replace(/!/g, "%21") : notReallyPercentEncode(value[j]);
+					}
+				} else if (typeof value == "object") {
+					if (showVariables && !varSpec.suffices['*']) {
+						result += varSpec.name + "=";
+					}
+					var first = true;
+					for (var key in value) {
+						if (!first) {
+							result += varSpec.suffices['*'] ? (separator || ",") : ",";
+						}
+						first = false;
+						result += shouldEscape ? encodeURIComponent(key).replace(/!/g, "%21") : notReallyPercentEncode(key);
+						result += varSpec.suffices['*'] ? '=' : ",";
+						result += shouldEscape ? encodeURIComponent(value[key]).replace(/!/g, "%21") : notReallyPercentEncode(value[key]);
+					}
+				} else {
+					if (showVariables) {
+						result += varSpec.name;
+						if (!trimEmptyString || value != "") {
+							result += "=";
+						}
+					}
+					if (varSpec.truncate != null) {
+						value = value.substring(0, varSpec.truncate);
+					}
+					result += shouldEscape ? encodeURIComponent(value).replace(/!/g, "%21"): notReallyPercentEncode(value);
+				}
+			}
+			return result;
+		};
+		var guessFunction = function (stringValue, resultObj, strict) {
+			if (prefix) {
+				stringValue = stringValue.substring(prefix.length);
+			}
+			if (varSpecs.length == 1 && varSpecs[0].suffices['*']) {
+				var varSpec = varSpecs[0];
+				var varName = varSpec.name;
+				var arrayValue = varSpec.suffices['*'] ? stringValue.split(separator || ",") : [stringValue];
+				var hasEquals = (shouldEscape && stringValue.indexOf('=') != -1);	// There's otherwise no way to distinguish between "{value*}" for arrays and objects
+				for (var i = 1; i < arrayValue.length; i++) {
+					var stringValue = arrayValue[i];
+					if (hasEquals && stringValue.indexOf('=') == -1) {
+						// Bit of a hack - if we're expecting "=" for key/value pairs, and values can't contain "=", then assume a value has been accidentally split
+						arrayValue[i - 1] += (separator || ",") + stringValue;
+						arrayValue.splice(i, 1);
+						i--;
+					}
+				}
+				for (var i = 0; i < arrayValue.length; i++) {
+					var stringValue = arrayValue[i];
+					if (shouldEscape && stringValue.indexOf('=') != -1) {
+						hasEquals = true;
+					}
+					var innerArrayValue = stringValue.split(",");
+					if (innerArrayValue.length == 1) {
+						arrayValue[i] = innerArrayValue[0];
+					} else {
+						arrayValue[i] = innerArrayValue;
+					}
+				}
+
+				if (showVariables || hasEquals) {
+					var objectValue = resultObj[varName] || {};
+					for (var j = 0; j < arrayValue.length; j++) {
+						var innerValue = stringValue;
+						if (showVariables && !innerValue) {
+							// The empty string isn't a valid variable, so if our value is zero-length we have nothing
+							continue;
+						}
+						if (typeof arrayValue[j] == "string") {
+							var stringValue = arrayValue[j];
+							var innerVarName = stringValue.split("=", 1)[0];
+							var stringValue = stringValue.substring(innerVarName.length + 1);
+							if (shouldEscape) {
+								if (strict && !isPercentEncoded(stringValue)) {
+									return;
+								}
+								stringValue = decodeURIComponent(stringValue);
+							}
+							innerValue = stringValue;
+						} else {
+							var stringValue = arrayValue[j][0];
+							var innerVarName = stringValue.split("=", 1)[0];
+							var stringValue = stringValue.substring(innerVarName.length + 1);
+							if (shouldEscape) {
+								if (strict && !isPercentEncoded(stringValue)) {
+									return;
+								}
+								stringValue = decodeURIComponent(stringValue);
+							}
+							arrayValue[j][0] = stringValue;
+							innerValue = arrayValue[j];
+						}
+						if (shouldEscape) {
+							if (strict && !isPercentEncoded(innerVarName)) {
+								return;
+							}
+							innerVarName = decodeURIComponent(innerVarName);
+						}
+
+						if (objectValue[innerVarName] !== undefined) {
+							if (Array.isArray(objectValue[innerVarName])) {
+								objectValue[innerVarName].push(innerValue);
+							} else {
+								objectValue[innerVarName] = [objectValue[innerVarName], innerValue];
+							}
+						} else {
+							objectValue[innerVarName] = innerValue;
+						}
+					}
+					if (Object.keys(objectValue).length == 1 && objectValue[varName] !== undefined) {
+						resultObj[varName] = objectValue[varName];
+					} else {
+						resultObj[varName] = objectValue;
+					}
+				} else {
+					if (shouldEscape) {
+						for (var j = 0; j < arrayValue.length; j++) {
+							var innerArrayValue = arrayValue[j];
+							if (Array.isArray(innerArrayValue)) {
+								for (var k = 0; k < innerArrayValue.length; k++) {
+									if (strict && !isPercentEncoded(innerArrayValue[k])) {
+										return;
+									}
+									innerArrayValue[k] = decodeURIComponent(innerArrayValue[k]);
+								}
+							} else {
+								if (strict && !isPercentEncoded(innerArrayValue)) {
+									return;
+								}
+								arrayValue[j] = decodeURIComponent(innerArrayValue);
+							}
+						}
+					}
+
+					if (resultObj[varName] !== undefined) {
+						if (Array.isArray(resultObj[varName])) {
+							resultObj[varName] = resultObj[varName].concat(arrayValue);
+						} else {
+							resultObj[varName] = [resultObj[varName]].concat(arrayValue);
+						}
+					} else {
+						if (arrayValue.length == 1 && !varSpec.suffices['*']) {
+							resultObj[varName] = arrayValue[0];
+						} else {
+							resultObj[varName] = arrayValue;
+						}
+					}
+				}
+			} else {
+				var arrayValue = (varSpecs.length == 1) ? [stringValue] : stringValue.split(separator || ",");
+				var specIndexMap = {};
+				for (var i = 0; i < arrayValue.length; i++) {
+					// Try from beginning
+					var firstStarred = 0;
+					for (; firstStarred < varSpecs.length - 1 && firstStarred < i; firstStarred++) {
+						if (varSpecs[firstStarred].suffices['*']) {
+							break;
+						}
+					}
+					if (firstStarred == i) {
+						// The first [i] of them have no "*" suffix
+						specIndexMap[i] = i;
+						continue;
+					} else {
+						// Try from the end
+						for (var lastStarred = varSpecs.length - 1; lastStarred > 0 && (varSpecs.length - lastStarred) < (arrayValue.length - i); lastStarred--) {
+							if (varSpecs[lastStarred].suffices['*']) {
+								break;
+							}
+						}
+						if ((varSpecs.length - lastStarred) == (arrayValue.length - i)) {
+							// The last [length - i] of them have no "*" suffix
+							specIndexMap[i] = lastStarred;
+							continue;
+						}
+					}
+					// Just give up and use the first one
+					specIndexMap[i] = firstStarred;
+				}
+				for (var i = 0; i < arrayValue.length; i++) {
+					var stringValue = arrayValue[i];
+					if (!stringValue && showVariables) {
+						// The empty string isn't a valid variable, so if our value is zero-length we have nothing
+						continue;
+					}
+					var innerArrayValue = stringValue.split(",");
+					var hasEquals = false;
+
+					if (showVariables) {
+						var stringValue = innerArrayValue[0]; // using innerArrayValue
+						var varName = stringValue.split("=", 1)[0];
+						var stringValue = stringValue.substring(varName.length + 1);
+						innerArrayValue[0] = stringValue;
+						var varSpec = varSpecMap[varName] || varSpecs[0];
+					} else {
+						var varSpec = varSpecs[specIndexMap[i]];
+						var varName = varSpec.name;
+					}
+
+					for (var j = 0; j < innerArrayValue.length; j++) {
+						if (shouldEscape) {
+							if (strict && !isPercentEncoded(innerArrayValue[j])) {
+								return;
+							}
+							innerArrayValue[j] = decodeURIComponent(innerArrayValue[j]);
+						}
+					}
+
+					if ((showVariables || varSpec.suffices['*'])&& resultObj[varName] !== undefined) {
+						if (Array.isArray(resultObj[varName])) {
+							resultObj[varName] = resultObj[varName].concat(innerArrayValue);
+						} else {
+							resultObj[varName] = [resultObj[varName]].concat(innerArrayValue);
+						}
+					} else {
+						if (innerArrayValue.length == 1 && !varSpec.suffices['*']) {
+							resultObj[varName] = innerArrayValue[0];
+						} else {
+							resultObj[varName] = innerArrayValue;
+						}
+					}
+				}
+			}
+			return 1;
+		};
+		return {
+			varNames: varNames,
+			prefix: prefix,
+			substitution: subFunction,
+			unSubstitution: guessFunction
+		};
+	}
+
+	function UriTemplate(template) {
+		if (!(this instanceof UriTemplate)) {
+			return new UriTemplate(template);
+		}
+		var parts = template.split("{");
+		var textParts = [parts.shift()];
+		var prefixes = [];
+		var substitutions = [];
+		var unSubstitutions = [];
+		var varNames = [];
+		while (parts.length > 0) {
+			var part = parts.shift();
+			var spec = part.split("}")[0];
+			var remainder = part.substring(spec.length + 1);
+			var funcs = uriTemplateSubstitution(spec);
+			substitutions.push(funcs.substitution);
+			unSubstitutions.push(funcs.unSubstitution);
+			prefixes.push(funcs.prefix);
+			textParts.push(remainder);
+			varNames = varNames.concat(funcs.varNames);
+		}
+		this.fill = function (valueFunction) {
+			if (valueFunction && typeof valueFunction !== 'function') {
+				var value = valueFunction;
+				valueFunction = function (varName) {
+					return value[varName];
+				};
+			}
+
+			var result = textParts[0];
+			for (var i = 0; i < substitutions.length; i++) {
+				var substitution = substitutions[i];
+				result += substitution(valueFunction);
+				result += textParts[i + 1];
+			}
+			return result;
+		};
+		this.fromUri = function (substituted, options) {
+			options = options || {};
+			var result = {};
+			for (var i = 0; i < textParts.length; i++) {
+				var part = textParts[i];
+				if (substituted.substring(0, part.length) !== part) {
+					return /*undefined*/;
+				}
+				substituted = substituted.substring(part.length);
+				if (i >= textParts.length - 1) {
+					// We've run out of input - is there any template left?
+					if (substituted == "") {
+						break;
+					} else {
+						return /*undefined*/;
+					}
+				}
+
+				var prefix = prefixes[i];
+				if (prefix && substituted.substring(0, prefix.length) !== prefix) {
+					// All values are optional - if we have a prefix and it doesn't match, move along
+					continue;
+				}
+
+				// Find the next part to un-substitute
+				var nextPart = textParts[i + 1];
+				var offset = i;
+				while (true) {
+					if (offset == textParts.length - 2) {
+						var endPart = substituted.substring(substituted.length - nextPart.length);
+						if (endPart !== nextPart) {
+							return /*undefined*/;
+						}
+						var stringValue = substituted.substring(0, substituted.length - nextPart.length);
+						substituted = endPart;
+					} else if (nextPart) {
+						var nextPartPos = substituted.indexOf(nextPart);
+						var stringValue = substituted.substring(0, nextPartPos);
+						substituted = substituted.substring(nextPartPos);
+					} else if (prefixes[offset + 1]) {
+						var nextPartPos = substituted.indexOf(prefixes[offset + 1]);
+						if (nextPartPos === -1) nextPartPos = substituted.length;
+						var stringValue = substituted.substring(0, nextPartPos);
+						substituted = substituted.substring(nextPartPos);
+					} else if (textParts.length > offset + 2) {
+						// If the separator between this variable and the next is blank (with no prefix), continue onwards
+						offset++;
+						nextPart = textParts[offset + 1];
+						continue;
+					} else {
+						var stringValue = substituted;
+						substituted = "";
+					}
+					break;
+				}
+				if (!unSubstitutions[i](stringValue, result, options.strict)) {
+					return /*undefined*/;
+				}
+			}
+			return result;
+		}
+		this.varNames = varNames;
+		this.template = template;
+	}
+	UriTemplate.prototype = {
+		toString: function () {
+			return this.template;
+		},
+		fillFromObject: function (obj) {
+			return this.fill(obj);
+		},
+		test: function (uri, options) {
+			return !!this.fromUri(uri, options)
+		}
+	};
+
+	return UriTemplate;
+});
+
+},{}],2:[function(require,module,exports){
+var uriTemplates = require('uri-templates');
+
+
     var JSONLDMacro = {};
 
-    JSONLDMacro.VERSION = "0.0.1";
+    JSONLDMacro.VERSION = "0.0.4";
+
+    // Default behaviour
+    JSONLDMacro.behaviour = "loose";
 
     // Map of registered functions
     JSONLDMacro.registeredFunctions = {};
 
     // Registered functions namespaces
     JSONLDMacro.registeredFunctionsNS = {};
-    
+
     JSONLDMacro.evalApplyFn = function(fnText, argument, input, context) {
 	var f;
 	eval("f = "+fnText);
@@ -76,8 +538,8 @@ module.__export((function() {
 	var prefix = JSONLDMacro.reservedPrefix+(new Date()).getTime()+"__";
 	var mapping = {};
 	var transformationMapping = {};
-	var node, pathSelector, transformationFn, selectedNodes, nodeCounter, transformationFns, transformations;	
-	var removeTransformation, nsTransformation, onlyTransformation;
+	var node, nodeInfo, nodeParent, pathSelector, transformationFn, selectedNodes, nodeCounter, transformationFns, transformations;
+	var removeTransformation, nsTransformation, onlyTransformation, explodeTransformation, compactTransformation;
 
 	for(var i=0; i<transformation.length; i++) {
 	    pathSelector = transformation[i][0];
@@ -85,11 +547,10 @@ module.__export((function() {
 
 
 	    selectedNodes = pathSelector(document);
-
 	    for(var j=0; j<selectedNodes.length; j++) {
-		nodeCounter = selectedNodes[j][prefix];
+		nodeCounter = selectedNodes[j].node[prefix];
 		if(nodeCounter == null)  {
-		    selectedNodes[j][prefix] = counter;
+		    selectedNodes[j].node[prefix] = counter;
 		    mapping[counter] = selectedNodes[j];
 		    transformationMapping[counter] = [];
 		    nodeCounter = counter;
@@ -100,15 +561,36 @@ module.__export((function() {
 	}
 
 	for(var c in mapping) {
-	    node = mapping[c];
+	    nodeInfo = mapping[c];
+            node = nodeInfo.node;
+            nodeParent = nodeInfo.parent;
 	    transformations = transformationMapping[c];
 
 	    for(i=0; i<transformations.length; i++) {
 		transformation = transformations[i];
+                explodeTransformation = transformation["@explode"];
+                compactTransformation = transformation["@compact"];
 		removeTransformation = transformation['@remove'];
 		onlyTransformation = transformation['@only'];
 		nsTransformation = transformation['@ns'];
 
+                if(explodeTransformation != null) {
+                    var transformed = explodeTransformation(node);
+                    transformed[prefix] = node[prefix];
+                    var found = false;
+                    for(var p in nodeParent) {
+                        if(nodeParent[p] == node) {
+                            nodeParent[p] = transformed;
+                            found = true;
+                        }
+                    }
+                    if(found) {
+                        node = transformed;
+                        nodeInfo.node = node;
+                    } else {
+                        throw("Cannot find exploded node in parent node");
+                    }
+                }
 
 		for(var name in transformation) {
 		    if(name !== '@remove' &&
@@ -126,8 +608,32 @@ module.__export((function() {
 
 		if(nsTransformation != null)
 		    nsTransformation(node);
+
+                if(compactTransformation != null) {
+                    var compacted = compactTransformation(node);
+                    var found = false;
+                    for(var p in nodeParent) {
+                        if(nodeParent[p] == node) {
+                            nodeParent[p] = compacted;
+                            found = true;
+                        }
+                    }
+                    if(found) {
+                        node = compacted;
+                        nodeInfo.node = node;
+                    } else {
+                        throw("Cannot find compacted node in parent node");
+                    }
+                }
+
 	    }
 	    delete node[prefix];
+	    if(JSONLDMacro.behaviour === "loose") {
+		for(var p in node) {
+		    if(node[p] == null)
+			delete node[p];
+		}
+	    }
 	}
 
 	return document;
@@ -144,13 +650,24 @@ module.__export((function() {
 	if(pathExpression[pathExpression.length-1] === '.')
 	    parts.pop();
 
-	if(parts[0] !== '$')
+	if(parts[0] !== '$' && parts[0] !== '$[*]') {
 	    throw "Error parsing path. Path must start with the root object '$'";
+	} else {
+	    parts[0] = '$';
+	}
 
 	return function(obj, f) {
 	    var nextSelection, val, selectArray;
-	    var selection = (obj.constructor === Array) ? obj : [obj];
+	    if (obj.constructor === Array) {
+                var selection = [];
+                for(var i=0; i<obj.length; i++) {
+                    selection.push({parent:null, node:obj[i]});
+                }
+            } else {
+              var selection = [{parent:null, node:obj}];
+            }
 	    var currentCounter = 0;
+            var i,p = 0;
 
 	    while(currentCounter<parts.length) {
 		var currentPart = parts[currentCounter];
@@ -165,16 +682,17 @@ module.__export((function() {
 		    break;
 		case '*':
 		    nextSelection = [];
-		    for(var i=0; i<selection.length; i++) {
-			for(var p in selection[i]) {
-			    nextSelection.push(selection[i][p]);
+		    for(i=0; i<selection.length; i++) {
+                        var node = selection[i].node;
+			for(p in node) {
+			    nextSelection.push({parent:node, node: node[p]});
 			}
 		    }
 		    break;
 		case '':
 		    nextSelection = [];
-		    for(var i=0; i<selection.length; i++) {
-			nextSelection = nextSelection.concat(JSONLDMacro._childrenRecursive(selection[i]));
+		    for(i=0; i<selection.length; i++) {
+			nextSelection = nextSelection.concat(JSONLDMacro._childrenRecursive(selection[i].parent, selection[i].node));
 		    }
 		    break;
 		default:
@@ -185,21 +703,26 @@ module.__export((function() {
 		    } else {
 			selectArray = false;
 		    }
-		    for(var i=0; i<selection.length; i++) {
-			val = selection[i][currentPart];
+		    for(i=0; i<selection.length; i++) {
+                        var node = selection[i].node;
+			var val = node[currentPart];
 			if(val !== undefined) {
 			    if(selectArray && val.constructor === Array) {
-				nextSelection = nextSelection.concat(val);
+                                var nextSelectionArray = [];
+                                for(i=0; i<val.length; i++) {
+                                    nextSelectionArray.push({parent:node.node, node:val[i]});
+                                }
+				nextSelection = nextSelection.concat(nextSelectionArray);
 			    } else {
-				nextSelection.push(val);
+				nextSelection.push({parent:node, node:val});
 			    }
 			    if(currentCounter === parts.length-1 && f!=null) {
 				if(selectArray && val.constructor === Array) {
 				    for(var j=0; j<val.length; j++) {
-					f(vaj[j], selection[i]);
+					f(val[j], selection[i].node);
 				    }
 				} else {
-				    f(val, selection[i]);
+				    f(val, selection[i].node);
 				}
 			    }
 			}
@@ -214,33 +737,37 @@ module.__export((function() {
 	    }
 
 	    if(f != null) {
-		for(var i=0; i<selection.length; i++) {
-		    f(selection[i], null);
+		for(i=0; i<selection.length; i++) {
+		    f(selection[i].node, null);
 		}
 	    }
 
 	    return selection;
-	}
+	};
     };
 
-    /** 
+    /**
      * @doc
      * Recursively collect all the children objects of a
-     * node passes as the function argument.
+     * node passed as the function argument.
      */
-    JSONLDMacro._childrenRecursive = function(obj) {
+    JSONLDMacro._childrenRecursive = function(parent, obj) {
 	var children = [];
-	var pending = [obj];
+	var pending = [{parent:parent, node:obj}];
 	var next;
-	
+
 	while(pending.length != 0) {
 	    next = pending.pop();
 	    children.push(next);
-	    for(var p in next) {
-		if(typeof(next[p]) === 'object' && next[p].constructor === Object) {
-		    pending.push(next[p]);
-		} else if(typeof(next[p]) === 'object' && next[p].constructor === Array) {
-		    pending = pending.concat(next[p]);
+	    for(var p in next.node) {
+		if(typeof(next.node[p]) === 'object' && next.node[p].constructor === Object) {
+		    pending.push({parent:next.node, node:next.node[p]});
+		} else if(typeof(next.node[p]) === 'object' && next.node[p].constructor === Array) {
+                    var children = [];
+                    for(var i=0; i<next.node[p].length; i++) {
+                        children.push({parent:next.node, node:next.node[p][i]});
+                    }
+		    pending = pending.concat(children);
 		}
 	    }
 	}
@@ -265,7 +792,7 @@ module.__export((function() {
 	    transformationSpecification = specification[path];
 	    nodeTransformation = {};
 	    for(var name in transformationSpecification) {
-		transformationFn = this.buildTransformationFunction(name , 
+		transformationFn = this.buildTransformationFunction(name ,
 								    transformationSpecification[name]);
 		nodeTransformation[name] = transformationFn;
 	    }
@@ -292,6 +819,9 @@ module.__export((function() {
 	case '@type':
 	    return this._buildTypeGenTransformation(body);
 
+        case '@add':
+	    return this._buildAddTransformation(body);
+
 	case '@remove':
 	    return this._buildRemoveTransformation(body);
 
@@ -304,9 +834,39 @@ module.__export((function() {
 	case '@transform':
 	    return this._buildTransformTransformation(body);
 
+        case '@explode':
+            return this._buildExplodeTransformation(body);
+
+        case '@compact':
+            return this._buildCompactTransformation(body);
+
 	default:
 	    throw("Unknown transformation: "+name);
 	}
+    };
+
+    JSONLDMacro._buildExplodeTransformation = function(specification) {
+        if(typeof(specification) === "string") {
+            var property = specification;
+            return function(value) {
+                var node = {};
+                node[property] = value;
+                return node;
+            };
+        } else {
+            throw "@explode rule accepts only a string as the body of the specification";
+        }
+    };
+
+    JSONLDMacro._buildCompactTransformation = function(specification) {
+        if(typeof(specification) === "string") {
+            var property = specification;
+            return function(value) {
+                return value[property];
+            };
+        } else {
+            throw "@compact rule accepts only a string as the body of the specification";
+        }
     };
 
     /**
@@ -318,7 +878,7 @@ module.__export((function() {
 	for(var p in specifications) {
 	    specification = specifications[p];
 	    if(typeof(specification) === 'string') {
-		specifications[p] = (function(p,v) { return function(obj) { obj[p] = v; return obj } })(p,specification);
+		specifications[p] = (function(p,v) { return function(obj) { obj[p] = v; return obj; }; })(p,specification);
 	    } else {
 
 		var operations = specification;
@@ -328,16 +888,26 @@ module.__export((function() {
 		specifications[p] =  (function(p, operations){
 		    return function(obj) {
 			var id;
-			for(var i=0; i<operations.length; i++) {
-			    if(id!=null && id.constructor === Array) {
-				for(var j=0; j<id.length; j++) {
-				    id[j] = JSONLDMacro.applyOperation(operations[i], id[j], obj);
+			try {
+			    for(var i=0; i<operations.length; i++) {
+				if(id!=null && id.constructor === Array) {
+				    for(var j=0; j<id.length; j++) {
+					id[j] = JSONLDMacro.applyOperation(operations[i], id[j], obj);
+				    }
+				} else {
+				    id = JSONLDMacro.applyOperation(operations[i], id, obj);
 				}
+			    }
+			} catch (e) {
+			    if(JSONLDMacro.behaviour === 'loose') {
+				if(typeof(console) != undefined)
+				    console.log("Error applying function at property "+p+" -> "+e);
+				id = null;
 			    } else {
-				id = JSONLDMacro.applyOperation(operations[i], id, obj);
+				throw(e);
 			    }
 			}
-		    
+
 			obj[p] = id;
 			return obj;
 		    };
@@ -354,7 +924,7 @@ module.__export((function() {
 	    }
 
 	    return tmp;
-	}
+	};
     };
 
     /**
@@ -403,7 +973,7 @@ module.__export((function() {
 		    continue;
 		if(p.indexOf('@') === 0)
 		    continue;
-		
+
 		if(mapping[p] != null) {
 		    newp = mapping[p]+":"+p;
 		    if(obj[newp] == null) {
@@ -446,10 +1016,10 @@ module.__export((function() {
 			delete obj[p];
 		    }
 		}
-		
+
 	    }
 	    return obj;
-	}
+	};
     };
 
     /**
@@ -466,6 +1036,19 @@ module.__export((function() {
 		delete obj[body[i]];
 	    }
 
+	    return obj;
+	};
+    };
+
+    /**
+     * @doc
+     * Builds a transformation that adds properties from the provided JSON object
+     */
+    JSONLDMacro._buildAddTransformation = function(body) {
+	return function(obj) {
+	    for(var p in body) {
+		obj[p] = body[p];
+	    }
 	    return obj;
 	};
     };
@@ -506,7 +1089,7 @@ module.__export((function() {
      */
     JSONLDMacro._buildTypeGenTransformation = function(body) {
 	if(typeof(body) === 'string') {
-	    return function(obj) { obj['@type'] = body; return obj };
+	    return function(obj) { obj['@type'] = body; return obj; };
 	}
 	var operations = body;
 	if(typeof(operations) === 'object' && operations.constructor === Object)
@@ -526,12 +1109,12 @@ module.__export((function() {
 		for(var i=0; i<operations.length; i++) {
 		    type = JSONLDMacro.applyOperation(operations[i], type, obj);
 		}
-		
+
 		obj['@type'] = type;
 		return obj;
 	    };
 	} else {
-	    return function(obj){ obj['@type'] = operations; return obj };
+	    return function(obj){ obj['@type'] = operations; return obj; };
 	}
     };
 
@@ -542,24 +1125,33 @@ module.__export((function() {
      */
     JSONLDMacro._buildIDGenTransformation = function(body) {
 	if(typeof(body) === 'string') {
-	    return function(obj) { obj['@id'] = body; return obj };
+	    return function(obj) { obj['@id'] = body; return obj; };
 	}
 	var operations = body;
 	if(typeof(operations) === 'object' && operations.constructor === Object)
 	    operations = [operations];
 
 	return function(obj) {
-	    var id;
-	    for(var i=0; i<operations.length; i++) {
-		id = JSONLDMacro.applyOperation(operations[i], id, obj);
+	    try {
+		var id;
+		for(var i=0; i<operations.length; i++) {
+		    id = JSONLDMacro.applyOperation(operations[i], id, obj);
+		}
+
+		obj['@id'] = id;
+	    } catch (e) {
+		if(JSONLDMacro.behaviour === 'strict') {
+		    throw e;
+		} else {
+		    if(typeof(console) !== 'undefined')
+			console.log("Error applyting transformation for @id rule: "+e);
+		}
 	    }
-	    
-	    obj['@id'] = id;
 	    return obj;
 	};
     };
 
-    /** 
+    /**
      * @doc
      * Transforms the context of an JSON object merging it with the context
      * passed as an argument
@@ -569,13 +1161,13 @@ module.__export((function() {
 	    var found;
 	    var cloned = JSON.parse(JSON.stringify(body));
 	    var oldContext = obj['@context'] || {};
-	    
-	    if(typeof(oldContext) === 'string') {		
+
+	    if(typeof(oldContext) === 'string') {
                 // ** old context is a string
 
 		if(typeof(cloned) === 'string') {
 		    // string - string
-		    obj['@context'] = [oldContext, cloned];		    
+		    obj['@context'] = [oldContext, cloned];
 		} else if(typeof(cloned) === 'object' && cloned.constructor === Array) {
 		    // string - array
 		    found = false;
@@ -597,7 +1189,7 @@ module.__export((function() {
                 // ** old context is an array
 		if(typeof(cloned) === 'string') {
 		    // array - string
-		    obj['@context'] = [cloned, oldContext];		    
+		    obj['@context'] = [cloned, oldContext];
 		} else if(typeof(cloned) === 'object' && cloned.constructor === Array) {
 		    // array - array
 		    var obja = null;
@@ -652,7 +1244,7 @@ module.__export((function() {
 
 		if(typeof(cloned) === 'string') {
 		    // object - string
-		    obj['@context'] = [cloned, oldContext];		    
+		    obj['@context'] = [cloned, oldContext];
 		} else if(typeof(cloned) === 'object' && cloned.constructor === Array) {
 		    // object - array
 		    var newContext = [];
@@ -678,7 +1270,7 @@ module.__export((function() {
 			objContext[p] = cloned[p];
 		    }
 		    obj['@context'] = objContext;
-		}		
+		}
 	    }
 
 	    return obj;
@@ -690,12 +1282,16 @@ module.__export((function() {
     JSONLDMacro.applyOperation = function(operation, input, context) {
 	if(operation['f:valueof']!=null) {
 	    return context[operation['f:valueof']];
+	} else if(operation['f:defaultvalue'] != null) {
+	    return operation['f:defaultvalue'];
 	} else if(operation['f:select']!=null) {
 	    return input[operation['f:select']];
 	} else if(operation['f:prefix']!=null) {
 	    return operation['f:prefix'] + input;
 	} else if(operation['f:urlencode']!=null) {
 	    return escape(input);
+        } else if(operation['f:basetemplateurl'] != null) {
+            return input.split("{")[0];
 	} else if(operation['f:apply']!=null) {
 	    var src = operation['f:apply'];
 	    return (new Function( "with(this) { return " + operation['f:apply'] + "}")).call(input);
@@ -750,15 +1346,36 @@ module.__export((function() {
 		}
 	    }
 	}
-	
+
+    };
+
+    // Testing URLs we don't accept matches including slashes
+    // with the exception of {*} bindings.
+    var testUrl = function(template, value) {
+        var res = template.fromUri(value);
+        if(res == null) {
+            return false;
+        } else {
+            for(var p in res) {
+                if(p !== "" && res[p].indexOf("/") !== -1) {
+                    return false;
+                }
+            }
+            return true;
+        }
     };
 
     JSONLDMacro.parseUrlPath = function(urlPath) {
-	var componentExpression = "[^\/\#]+";
-	urlPath = urlPath.replace(/\*/g,componentExpression);
-	var re = new RegExp("^"+urlPath+"$");
-
-	return re;
+        var template = uriTemplates(urlPath);
+        if(template != null) {
+            template._test = template.test;
+            template.test = function(url) {
+                return testUrl(template,url);
+            };
+            return template;
+        } else {
+            return null;
+        }
     };
 
     JSONLDMacro.apiPaths = [];
@@ -838,6 +1455,9 @@ module.__export((function() {
 	store.setNetworkTransport(macroNetworkTransport);
     };
 
+if(typeof(window) !== 'undefined') {
+    window.JSONLDMacro = JSONLDMacro;
+}
+module.exports.JSONLDMacro = JSONLDMacro;
 
-    return JSONLDMacro;
-})());
+},{"uri-templates":1}]},{},[2]);

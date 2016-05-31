@@ -1,4 +1,4 @@
-var macro = require('../src/macro');
+var macro = require('../src/macro').JSONLDMacro;
 var rdfstore = require('rdfstore');
 
 exports.urlExpDef = function(test) {
@@ -207,7 +207,6 @@ exports.defineAPI6 = function(test) {
                                  }
                              });
 
-    console.log(res1);
     test.ok(res1 != null);
     test.ok(res1['gh:starred_url']['@id'] === 'https://api.github.com/users/octocat/starred');
     test.ok(res1['gh:starred_url']['http://test.com/prop1'] === 'prop 1');

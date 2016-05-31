@@ -5,423 +5,109 @@
 <!--[if IE 8 ]>    <html class="no-js ie8" lang="en"> <![endif]-->
 <!--[if (gte IE 9)|!(IE)]><!--> <html class="no-js" lang="en"> <!--<![endif]-->
 
-<head>
-  <meta charset="utf-8">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
-  <title>JSON-LD Macros Demo</title>
-  <meta name="author" content="Antonio Garrote">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+        <title>JSON-LD Macros Editor</title>
+        <meta name="author" content="Antonio Garrote">
 
-  <link rel="stylesheet" href="./css/bootstrap.min.css">
-  <link rel="stylesheet" href="./css/codemirror.css">
-  <link rel="stylesheet" href="./css/admin.css">
+        <link rel="stylesheet" href="./css/bootstrap.min.css">
+        <link rel="stylesheet" href="./css/bootstrap-theme.min.css">
+        <link rel="stylesheet" href="./lib/codemirror/lib/codemirror.css">
+        <link rel="stylesheet" href="./css/app.css">
 
-  <script type='text/javascript' src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
-  <script type='text/javascript' src='https://ajax.googleapis.com/ajax/libs/jqueryui/1.8.16/jquery-ui.min.js'></script>
-  <script type='text/javascript' src='http://ajax.microsoft.com/ajax/jquery.templates/beta1/jquery.tmpl.min.js'></script>
- <script type='text/javascript' src='https://raw.github.com/antoniogarrote/rdfstore-js/master/dist/browser/rdf_store_min.js'></script>
-  <script type='text/javascript' src='./js/bootstrap-modal.js'></script>
-  <script type='text/javascript' src='./js/bootstrap-tabs.js'></script>
-  <script type='text/javascript' src='./js/beautify.js'></script>
-  <script type='text/javascript' src='./js/macro.js'></script>
-  <script type='text/javascript' src='https://raw.github.com/antoniogarrote/semantic-ko/semantic/dist/semko.js'></script>
-  <script type='text/javascript' src='./js/codemirror.js'></script>
-  <script type='text/javascript' src='./js/bootstrap-tabs.js'></script>
-  <script type='text/javascript' src='./js/modes/javascript.js'></script>
-  <script type='text/javascript' src='./js/modes/css.js'></script>
-  <script type='text/javascript' src='./js/modes/xml.js'></script>
-  <script type='text/javascript' src='./js/modes/htmlmixed.js'></script>
-  <script type='text/javascript'>
-    jQuery(document).ready(function(){
-      rdfstore.create(function(store) {
-          sko.ready(store, function(){	
+        <script type='text/javascript' src='./js/jquery.js'></script>
+        <script type='text/javascript' src='./js/knockout.js'></script>
+        <script type='text/javascript' src='./js/bootstrap.min.js'></script>
+        <script type='text/javascript' src='./js/rdf_store.js'></script>
+        <script type='text/javascript' src='./js/beautify.js'></script>
+        <script type='text/javascript' src='./js/macro.js'></script>
+        <script type='text/javascript' src='./lib/codemirror/lib/codemirror.js'></script>
+        <script type='text/javascript' src='./lib/codemirror/mode/javascript/javascript.js'></script>
+        <script type='text/javascript' src='./lib/codemirror/mode/turtle/turtle.js'></script>
+        <script type='text/javascript' src='./js/app.js'></script>
+        <script type='text/javascript'>
+         jQuery(document).ready(function(){
+             app();
+         });
+        </script>
+    </head>
 
-              var viewModel = {
-		  githubUser: ko.observable(),
-		  originalEditor: ko.observable(),
-		  transformationEditor: ko.observable(),
-		  transformedEditor: ko.observable(),
-                  defaultQuery: ko.observable("SELECT * { ?s ?p ?o }"),
-		  bindingVariables: ko.observable([]),
-		  bindings: ko.observable([]),
-                  crumbs: ko.observable([]),
-                  selectedCrumb: ko.observable('step-load')
-	      };
+    <body>
 
-              viewModel.showCrumb = function(step) {
-		  var newCrumbs = [];
-		  for(var i=0; i<viewModel.crumbs(); i++) {
-		      if(viewModel.crumbs()[i] === step)
-			  break;
-		  }
-		  if(step === 'step-load') {
-		      viewModel.crumbs([]);
-		      viewModel.selectedCrumb('step-load');
-		  } else if(step === 'step-transform') {
-		      viewModel.crumbs(['step-load']);
-		      viewModel.selectedCrumb('step-transform');
-		  } else if(step === 'step-import') {
-		      viewModel.crumbs(['step-load', 'step-transform']);
-		      viewModel.selectedCrumb('step-import');
-		  } else if(step === 'step-query') {
-		      viewModel.crumbs(['step-load', 'step-transform', 'step-import']);
-		      viewModel.selectedCrumb('step-query');
-		  }
-	      };
+        <!-- holder for the frontend -->
+        <div class='container'>
 
-              viewModel.textForCrumb = function(step) {
-		  if(step === 'step-load') {
-		      return "1. Load remote data";
-		  } else if(step === 'step-transform') {
-		      return "2. Define a transformation";
-		  } else if(step === 'step-import') {
-		      return "3. Import the transformed data";
-		  } else if(step === 'step-query') {
-		      return "4. Query the imported data";
-		  }
-	      };
+            <ul class="nav nav-tabs">
+                <li role="presentation" data-bind="css: {active: mode()=='edit'}"><a href="#" id="select-edit" data-bind="click: selectMode">Edit Macro</a></li>
+                <li role="presentation" data-bind="css: {active: mode()=='json'}"><a href="#" id="select-json" data-bind="click: selectMode ">JSON Input</a></li>
+                <li role="presentation" data-bind="css: {active: mode()=='jsonld'}"><a href="#" id="select-jsonld" data-bind="click: selectMode ">JSON-LD Output</a></li>
+                <li role="presentation" data-bind="css: {active: mode()=='triples'}"><a href="#" id="select-triples" data-bind="click: selectMode ">TRIPLES Output</a></li>
+            </ul>
 
-	      viewModel.textForSelectedCrumb = ko.dependentObservable(function(){
-		  return viewModel.textForCrumb(viewModel.selectedCrumb());
-	      })
-
-	      window.jsonp = function(data) {
-		  viewModel.crumbs(['step-load']);
-		  viewModel.selectedCrumb('step-transform');
-
-		  data = js_beautify(JSON.stringify(data))
-		  var editor = viewModel.originalEditor();
-		  if(editor == null) {
-                      editor = CodeMirror(document.getElementById("loaded"), 
-					  {
-					      smartIndent: true,
-					      lineNumbers: true,
-					      lineWrapping: false,
-					      electricChars: true,
-					      readOnly: true,
-					      value: data,
-					      mode:  {name: "javascript", json: true}
-					  });
-		      viewModel.originalEditor(editor);
-		  } else {
-		      editor.setValue(data)
-		  }
-
-
-		  editor = viewModel.transformationEditor();
-		  if(editor == null) {
-                      editor = CodeMirror(document.getElementById("transformation"), 
-					  {
-					      smartIndent: true,
-					      lineNumbers: true,
-					      lineWrapping: false,
-					      electricChars: true,
-					      readOnly: false,
-					      value: js_beautify(viewModel.transformation()),
-					      mode:  {name: "javascript", json: true}
-					  });
-		      viewModel.transformationEditor(editor);		     
-		  }
-	      };
-
-	      viewModel.loadGithubUser = function()  {
-		  viewModel.crumbs([]);
-		  viewModel.selectedCrumb('step-load');
-		  var uri = "https://api.github.com/users/"+this.githubUser()+"?callback=jsonp";
-
-		  var script = document.createElement('script');
-		  script.setAttribute('type','text/javascript');
-		  script.setAttribute('src', uri);
-		  document.getElementsByTagName('head')[0].appendChild(script); 
-	      };
-
-	      viewModel.applyTransformation = function() {
-		  viewModel.crumbs(['step-load', 'step-transform']);
-		  viewModel.selectedCrumb('step-import');
-
-		  var originalData = viewModel.originalEditor().getValue();
-		  var transformationData = viewModel.transformationEditor().getValue();
-
-		  originalData = JSON.parse(originalData);
-		  transformationData = JSON.parse(transformationData);
-		  macro = jsonld_macros;
-		  macro.clearAPIs();
-		  macro.registerAPI(transformationData);
-
-		  var transformed = macro.resolve("https://api.github.com/users/"+this.githubUser(),
-						  originalData);
-
-		  var editor = viewModel.transformedEditor();
-		  if(editor == null) {
-                      editor = CodeMirror(document.getElementById("transformed"), 
-					  {
-    				     	      smartIndent: true,
-    				     	      lineNumbers: true,
-    				     	      lineWrapping: false,
-    				     	      electricChars: true,
-    				     	      readOnly: false,
-    				     	      value: js_beautify(JSON.stringify(transformed)),
-    				     	      mode:  {name: "javascript", json: true}
-    				          });		  
-		  
-		      viewModel.transformedEditor(editor);
-		  } else {
-		      editor.setValue(js_beautify(JSON.stringify(transformed)))
-		  }
-	      };
-
-	      viewModel.loadStore = function() {
-		  var transformed = JSON.parse(viewModel.transformedEditor().getValue());
-		  sko.store.clear(function() {});
-		  debugger;
-		  sko.store.load("application/json", transformed, function(success, results){
-		      debugger;
-		      if(success) {
-			  sko.store.execute(viewModel.defaultQuery(), function(success, results) {
-			      debugger;
-			      if(success) {
-				  var variables = [];
-				  for(var p in (results[0]||{})) {
-				      variables.push(p);
-				  }
-				  var bindings = [];
-				  var row;
-				  for(var i=0; i<results.length; i++) {
-				      row = [];
-				      for(var p=0; p<variables.length;  p++){
-					  row.push(results[i][variables[p]].value);
-				      }
-				      bindings.push(row);
-				  }
-
-				  viewModel.bindingVariables(variables);
-				  viewModel.bindings(bindings);
-				  viewModel.crumbs(['step-load', 'step-transform', 'step-import']);
-				  viewModel.selectedCrumb('step-query');
-
-			      } else {
-				  alert("Query failed: "+results);
-			      }
-			  });
-		      } else {
-			  alert("Error loading transformed data");
-		      }
-		  });
-	      };
-
-	      viewModel.runQuery = function() {
-		  sko.store.execute(viewModel.defaultQuery(), function(success, results) {
-		      if(success) {
-			  var variables = [];
-			  for(var p in (results[0]||{})) {
-			      variables.push(p);
-			  }
-			  var bindings = [];
-			  var row;
-			  for(var i=0; i<results.length; i++) {
-			      row = [];
-			      debugger;
-			      for(var p=0; p<variables.length;  p++){
-				  row.push(results[i][variables[p]].value);
-			      }
-			      bindings.push(row);
-			  }
-			  
-			  viewModel.bindingVariables(variables);
-			  viewModel.bindings(bindings);
-		      } else {
-			  alert("Query failed: "+results);
-		      }
-		  });
-	      };
-
-	      viewModel.transformation = ko.observable('{"https://api.github.com/users/*": {"$": {"@context": {"data":"http://socialrdf.org/github/datafeed"}, "@remove":"meta"}, "$.data": {"@ns": {"ns:default": "gh"}, "@context": {"gh":"http://socialrdf.org/github/"}, "@type": "http://socialrdf.org/github/User"}}}');
-
-              sko.applyBindings("body", viewModel, function(){});
-	  });
-      });
-    });
-  </script>
-</head>
-
-  <body>
-    <!-- Breadcrumb -->
-    <ul class='breadcrumb' data-bind='template: "breadcrumb-template"'></ul>
-
-    <!-- holder for the frontend -->
-    <div class='container'>
-      
-      <section id='step-load' data-bind='visible: selectedCrumb()==="step-load"'>
-	<div class='page-header'>
-          <h1>1. Load data from <a target='_blank' href='http://developer.github.com/v3/users/'>Github's Users API</a></h1>
-	</div>
-	<div class='row'>
-          <div class='span8'>
-   	    <form>
-   	      <fieldset>
-   		<label for="github-user"><b>Github username:</b></label>
-   		<div class="input">
-   		  <input id="github-user" class="xlarge" type="text" size="30" name="xlInput" data-bind='value: githubUser'></input>
-   		</div>
-   	      </fieldset>
-   	    </form>
-          </div>
-          <div class='span2'>
-   	    <fieldset>
-   	      <div class="input" data-bind='click: loadGithubUser'>
-   		<button class='btn primary'>load</button>
-   	      </div>
-   	    </fieldset>
-          </div>
-	</div>
-      </section>
-
-      <section id='step-transform' data-bind='visible: selectedCrumb()==="step-transform"'>
-	<div class='page-header'>
-          <h1>2. Transform the data applying a JSON-LD transformation</h1>
-	</div>
-	<div class='row'>
-          <div class='span8'>
-       	    <div class='row ex-editor-ttitle'>
-       	      <h3 class='span8'>Loaded data</h3>
-       	    </div>
-       	    <div id='loaded'>
-       	    </div>
-          </div>
-	  
-          <div class='span8'>
-       	    <div class='row ex-editor-ttitle'>
-       	      <h3 class='span8'>Transformation</h3>
-       	    </div>
-       	    <div id='transformation'>
-       	    </div>
-          </div>
-	</div>
-	
-	<div class='row'>
-          <div class='span16'>
-       	    <fieldset>
-	      <div class='actions'>
-       		<div class="input" data-bind='click: applyTransformation'>
-       		  <button class='btn primary'>Transform</button>
-       		</div>
-	      </div>
-       	    </fieldset>
-          </div>
-	</div>
-      </section>
-
-
-      <section id='step-import' data-bind='visible: selectedCrumb()==="step-import"'>
-	<div class='page-header'>
-	  <h1>3. Import the transformed data into a RDF store</h1>
-	</div>
-	<div class='row'>
-	  <div class='span16'>
-	    <div class='row ex-editor-ttitle'>
-	      <h3 class='span8'>Transformed data</h3>
-	    </div>
-	    <div id='transformed'>
-	    </div>
-	  </div>
-	</div>
-	<div class='row'>
-	  <div class='span16'>
-	    <fieldset>
-	      <div class='actions'>
-		<div class="input" data-bind='click: loadStore'>
-		  <button class='btn primary'>Load Transformed Data</button>
-		</div>
-	      </div>
-	    </fieldset>
-	  </div>
-	</div>
-      </section>
-
-      <section id='step-query' data-bind='visible: selectedCrumb()==="step-query"'>
-	<div class='page-header'>
-	  <h1>4. Query the data using SPARQL</h1>
-	</div>
-
-	<div class='row'>
-	  <div class='row'>
-            <div class='span16'>
-       	      <div class='row ex-editor-ttitle'>
-       		<h3 class='span8'>Loaded Query Data</h3>
-       	      </div>
-       	      <div id='transformed'>
-       	      </div>
+            <div "class="row" data-bind="visible: mode() =='json'">
+                <div id="json-data" class="col-md-12">
+                    <form>
+                        <div class="form-group">
+                            <div id="json-input" data-bind="codemirror: json" style="height: 380px"></div>
+                        </div>
+                </div>
+                    </form>
             </div>
-	  </div>
 
-	  <span class='span16' data-bind="template:'sparql-results-template'" style='height: 500px; overflow:scroll'></span>
+            <div "class="row" data-bind="visible: mode() =='jsonld'">
+                <div id="json-data" class="col-md-12">
+                    <form>
+                        <div class="form-group">
+                            <div id="jsonld-output" data-bind="codemirror: jsonld" style="height: 380px"></div>
+                        </div>
+                </div>
+                    </form>
+            </div>
 
-	  <div class='row'>
-	    <div class='span16'>
-	      <form>
-		<fieldset>
-		  <div class='clearfix'>
-		    <label for='sparql-query-text'>
-		      <b>SPARQL query</b>
-		    </label>
-		    <div class='input'>
-		      <textarea id="sparql-results-text" class="xxlarge" rows="3" data-bind='value:defaultQuery'></textarea>
-		    </div>
-		  </div>
-		</fieldset>
-	      </form>
-	    </div>
-	  </div>
+            <div class="row" data-bind="visible: mode() =='triples'">
+                <div id="json-data" class="col-md-12">
+                    <form>
+                        <div class="form-group">
+                            <div id="n3-output" data-bind="codemirror: triples" style="height: 380px"></div>
+                        </div>
+                </div>
+                    </form>
+            </div>
 
-	  <div class='row'>
-	    <div class='span16'>
-	      <form>
-		<fieldset>
-		  <div class='actions'>
-		    <div class="input" data-bind='click: runQuery'>
-		      <button class='btn primary'>Run Query</button>
-		    </div>
-		  </div>
-		</fieldset>
-              </form>
-	    </div>
-	  </div>
-	</div>
-      </section>
+            <div class="row" data-bind="visible: mode() =='edit'">
+                <div class="col-md-2">
+                    <h3>Selectors</h3>
+                    <ul class="nav nav-pills nav-stacked">
+                        <!-- ko foreach: selectors -->
+                        <li role="presentation">
+                            <a data-bind="text: $data.selector, click: displaySelector"></a>
+                        </li>
+                        <!-- /ko -->
+                    </ul>
+                </div>
+                <div class="col-md-10">
+                    <div id="data-input" "class="row">
+                        <div id="macro" class="col-md-12">
+                            <form>
+                                <div class="form-group">
+                                    <label>NODE SELECTOR</label>
+                                    <input type="text" class="form-control" id="json-data-url" data-bind="textInput: currentSelector">
+                                </div>
+                                <div class="form-group">
+                                    <label>MACRO</label>
+                                    <div id="macro-input" data-bind="codemirror: currentMacro"></div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                    <div id="actions" class="row">
+                        <button type="submit" class="btn btn-default pull-right" data-bind="click: addSelector">Add Selector</button>
+                    </div>
+                </div>
+            </div>
+            <!-- end of container -->
+        </div>
 
-
-      <!-- end of container -->    
-    </div>
-    <script id='breadcrumb-template' type='text/html'>
-      {{each crumbs}}
-        <li><a href='#' data-bind='click: function(){ showCrumb($value); }, text: textForCrumb($value)'>${$value}</a><span class="divider"> > </span></li>
-      {{/each}}
-
-	<li class='active' data-bind='text: textForSelectedCrumb'></li>
-    </script>
-
-    <script id='sparql-results-template' type='text/html'>
-      <div id='sparql-results-table-rows'>
-	<table>
-	  <thead>
-            <tr>
-              {{each bindingVariables}}
-              <th scope='col'>${$value}</th>
-              {{/each}}
-            </tr>
-	  </thead>
-	  <tbody>
-	    {{each bindings}}
-	    <tr>
-	      {{each $value}}
-              <td>${$value}</td>
-	      {{/each}}
-	    </tr>
-	    {{/each}}
-	  </tbody>
-	</table>
-      </div>
-    </script>
-
-  </body>
-
+    </body>
 </html>

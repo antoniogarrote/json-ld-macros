@@ -1,28 +1,9 @@
-// Detects if we are in the browser or in node
-if(typeof(module) === 'undefined') {
-    window.module = {
-	__export: function(obj) {
-	    window['jsonld_macros'] = obj;
-	}
-    };
-} else if(typeof(module) !== 'undefined' && module.exports == null) {
-    window.module = {
-	__export: function(obj) {
-	    window['jsonld_macros'] = obj;
-	}
-    };
-} else {
-    module.__export = function(obj) {
-	module.exports = obj;
-    };
-}
-
 var uriTemplates = require('uri-templates');
 
-module.__export((function() {
+
     var JSONLDMacro = {};
 
-    JSONLDMacro.VERSION = "0.0.4";
+    JSONLDMacro.VERSION = "0.0.5";
 
     // Default behaviour
     JSONLDMacro.behaviour = "loose";
@@ -998,6 +979,7 @@ module.__export((function() {
 	store.setNetworkTransport(macroNetworkTransport);
     };
 
-
-    return JSONLDMacro;
-})());
+if(typeof(window) !== 'undefined') {
+    window.JSONLDMacro = JSONLDMacro;
+}
+module.exports.JSONLDMacro = JSONLDMacro;
