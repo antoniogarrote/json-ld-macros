@@ -8,34 +8,34 @@ A demo is available [here](http://antoniogarrote.github.com/json-ld-macros/) .
 
     // requires the library
     var macros = require('jsonld_macros');
-     
+
     macros.registerAPI({
-   
+
       // URI template for a remote service (Github Users' API)
-      "https://api.github.com/users/*": 
+      "https://api.github.com/users/*":
 
       {"$": // selects the root node / list of root nodes of the JSON document
 
         { // a JSON-LD context that will be added to all the slected nodes
-          "@context": {"data":"http://socialrdf.org/github/datafeed"}, 
+          "@context": {"data":"http://socialrdf.org/github/datafeed"},
           // removes the meta property and associated value from the selected nodes
-          "@remove":"meta"}, 
+          "@remove":"meta"},
 
         "$.data": // selects the root node/data objects
 
          {// by default, all properties in the selected nodes will have the 'gh' prefix
-          "@ns": {"ns:default": "gh"}, 
+          "@ns": {"ns:default": "gh"},
           // a JSON-LD context declaration that will be added to all the selecte nodes
-          "@context": {"gh":"http://socialrdf.org/github/"}, 
+          "@context": {"gh":"http://socialrdf.org/github/"},
           // a JSON-LD type declaration that will be added to all the selecte nodes
           "@type": "http://socialrdf.org/github/User"}}
     });
-     
+
     // We retrieve the data using whatever transport layer is
     // available: AJAX, TCP sockets...
     var resourceURI = "https://api.github.com/users/1";
     retrieveRemoteData(resourceURI, function(data){
-      
+
        // we can apply the transformation to the retrieved data
        // passing the URI used to retrieve the data
        // as a selector for the transformation
@@ -100,7 +100,7 @@ This is a description of the different transformations
 
 Defines a context JSON-LD object that is inserted in the target object. The body of the rule is the JSON object defining the JSON-LD context that will be inserted
 
-### @id 
+### @id
 
 Defines how the @id JSON-LD attribute will be generated in the transformed object. Possible rule values can be:
 
@@ -169,24 +169,24 @@ The following code shows an example of how a function can be declared in an API 
 
 
     {
-      '@declare': 
+      '@declare':
       {
         // 'test' is a prefix
         'test': 'http://socialrdf.org/functions/',
         // declaration of the 'test:f' function
         'test:f': 'function(argument, input, obj){ return "the "+argument+" "+input }'
       },
-     
+
       "https://api.github.com/users/*,\
-       https://api.github.com/users/*/friends/*": 
+       https://api.github.com/users/*/friends/*":
       {
          '$': {'@ns': {'ns:default': 'gh'},
                '@context': {'gh':'http://socialrdf.org/github/'},
                '@type': 'http://socialrdf.org/github/User',
                '@transform': {
          	      'name': [{'f:valueof':'name'},
-                               // we can apply the declared function
-            	               {'test:f': 'user name:'}]
+                           // we can apply the declared function
+          	               {'test:f': 'user name:'}]
                       }
               }
        }

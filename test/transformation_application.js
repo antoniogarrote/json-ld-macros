@@ -1,7 +1,5 @@
 var macro = require('../src/macro');
-var parser = require('./lib/jsonld');
-var rdfstore = require('./lib/rdfstore');
-var sys = require("util");
+var rdfstore = require('rdfstore');
 
 var user = {
   "login": "octocat",
@@ -79,7 +77,7 @@ var authenticatedUser = {
 };
 
 exports.transformation1 = function(test) {
-    
+
     var transformationSpecification = {
 	'$': {
 	    '@id': {'f:valueof': 'url'},
@@ -103,7 +101,7 @@ exports.transformation1 = function(test) {
 			 'xsd': 'http://www.w3.org/2001/XMLSchema#',
 			 'foaf:depiction': { '@type': '@id' },
 			 'foaf:homepage': {'@type': '@id'},
-			 'gh:created_at': {'@type': 'xsd:date'} 
+			 'gh:created_at': {'@type': 'xsd:date'}
 			}
 	     }
     };
@@ -111,7 +109,7 @@ exports.transformation1 = function(test) {
     var transformation = macro.buildTransformation(transformationSpecification);
     var jsonld = macro.applyTransformation(transformation, JSON.parse(JSON.stringify(user)));
 
-    rdfstore.create(function(store) {
+    rdfstore.create(function(err, store) {
 	store.load('application/json', jsonld, function(err, loaded) {
 	    store.execute("SELECT * { ?s ?p ?o }", function(success, results) {
 		test.ok(results.length === 17);
@@ -132,7 +130,7 @@ exports.transformation2 = function(test) {
 
     var jsonld = macro.transform(transformationSpecification, JSON.parse(JSON.stringify(user)));
 
-    rdfstore.create(function(store) {
+    rdfstore.create(function(err, store) {
 	store.load('application/json', jsonld, function(err, loaded) {
 	    store.execute("SELECT * { ?s ?p ?o }", function(success, results) {
 		test.ok(results.length === 19);
@@ -153,18 +151,18 @@ exports.transformation3 = function(test) {
 
 	'$.plan': {'@ns': {'ns:default': 'gh'},
 		   '@context': { 'gh': 'http://socialrdf.org/github/'},
-		   '@type': 'http://socialrdf.org/github/Plan'} 
+		   '@type': 'http://socialrdf.org/github/Plan'}
     };
 
     var jsonld = macro.transform(transformationSpecification, JSON.parse(JSON.stringify(authenticatedUser)));
 
-    rdfstore.create(function(store) {
+    rdfstore.create(function(err, store) {
 	store.load('application/json', jsonld, function(err, loaded) {
 	    store.execute("PREFIX gh: <http://socialrdf.org/github/>\
                            SELECT ?u ?p \
                            WHERE  { ?u a gh:User .\
                                     ?u gh:plan  ?p .\
-				    ?p a gh:Plan }", 
+				    ?p a gh:Plan }",
 			  function(success, results) {
 			      test.ok(results.length === 1);
 			      test.ok(results[0].u.token === 'blank');
@@ -190,7 +188,7 @@ exports.transformation4 = function(test) {
 
 
 exports.transformation5 = function(test) {
-    
+
     var transformationSpecification = {
 	'$': {
 	    '@id': {'f:valueof': 'url'},
@@ -216,7 +214,7 @@ exports.transformation5 = function(test) {
 			 'xsd': 'http://www.w3.org/2001/XMLSchema#',
 			 'foaf:depiction': { '@type': '@id' },
 			 'foaf:homepage': {'@type': '@id'},
-			 'gh:created_at': {'@type': 'xsd:date'} 
+			 'gh:created_at': {'@type': 'xsd:date'}
 			}
 	     }
     };
@@ -241,7 +239,7 @@ exports.transformation5 = function(test) {
 
 exports.transformation6 = function(test) {
     var transformationSpecification = {
-	'$': { '@ns':{ 'ns:default': 'gh', 
+	'$': { '@ns':{ 'ns:default': 'gh',
 		       'ns:replace': {'login': 'foaf:a',
 				      'email': 'foaf:a',
 				      'name': 'foaf:a',
@@ -268,7 +266,7 @@ exports.transformation7 = function(test) {
 
     var jsonld = macro.transform(transformationSpecification, {'hello':'world'});
 
-    rdfstore.create(function(store) {
+    rdfstore.create(function(_, store) {
 	store.load('application/json', jsonld, function(err, loaded) {
 	    store.execute("SELECT * { ?s a <http://test.com/classes/A> }", function(success, results) {
 		test.ok(results.length === 1);

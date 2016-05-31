@@ -1,9 +1,9 @@
 var macro = require('../src/macro');
-var rdfstore = require('./lib/rdfstore');
+var rdfstore = require('rdfstore');
 
 exports.urlExpDef = function(test) {
     var path = macro.parseUrlPath("https://api.github.com/users/*");
-    
+
     test.ok(path.test("https://api.github.com/users/1"));
     test.ok(path.test("https://api.github.com/us/ers/1") === false);
     test.ok(path.test("https://api.github.com/us#ers/1") === false);
@@ -20,26 +20,26 @@ exports.urlExpDef = function(test) {
 exports.defineAPI = function(test) {
     macro.clearAPIs();
     macro.registerAPI({
-	"https://api.github.com/users/*": 
+	"https://api.github.com/users/*":
 
 	{'$': {'@ns': {'ns:default': 'gh'},
 	       '@context': {'gh':'http://socialrdf.org/github/'},
 	       '@type': 'http://socialrdf.org/github/User'}},
 
-	
-	"https://api.github.com/users/*/commits/*": 
+
+	"https://api.github.com/users/*/commits/*":
 
 	{'$': {'@ns': {'ns:default': 'gh'},
 	       '@context': {'gh':'http://socialrdf.org/github/'},
 	       '@type': 'http://socialrdf.org/github/Commit'}}
     });
-    
+
     var res1 = macro.resolve('https://api.github.com/users/1?this=will&be=ignored', {'name': 'octocat'});
 
     var res2 = macro.resolve('https://api.github.com/users/1/commits/234a232bc2', {'name': 'test commit'});
-    
 
-    rdfstore.create(function(store) {
+
+    rdfstore.create(function(err, store) {
 	store.load('application/json', res1, function(err, loaded) {
 	    store.load('application/json', res2, function(err, loaded) {
 		store.execute("select * { ?s a ?o }", function(success, result){
@@ -65,13 +65,13 @@ exports.defineAPI2 = function(test) {
     macro.clearAPIs();
     macro.registerAPI({
 	"https://api.github.com/users/*,\
-         https://api.github.com/users/*/friends/*": 
+         https://api.github.com/users/*/friends/*":
 
 	{'$': {'@ns': {'ns:default': 'gh'},
 	       '@context': {'gh':'http://socialrdf.org/github/'},
 	       '@type': 'http://socialrdf.org/github/User'}}
     });
-    
+
     var res1 = macro.resolve('https://api.github.com/users/1', {'name': 'octocat'});
     var res2 = macro.resolve('https://api.github.com/users/1/friends/343', {'name': 'test commit'});
     var res3 = macro.resolve('https://api.github.com/users/1/commits/234a232bc2', {'name': 'test commit'});
@@ -87,14 +87,14 @@ exports.defineAPI2 = function(test) {
 exports.defineAPI3 = function(test) {
     macro.clearAPIs();
     macro.registerAPI({
-	'@declare': 
+	'@declare':
         {
 	    'test': 'http://socialrdf.org/functions/',
 	    'test:f': 'function(argument, input, obj){ return "the "+argument+" "+input }'
 	},
 
 	"https://api.github.com/users/*,\
-         https://api.github.com/users/*/friends/*": 
+         https://api.github.com/users/*/friends/*":
 	{
 	 '$': {'@ns': {'ns:default': 'gh'},
 	       '@context': {'gh':'http://socialrdf.org/github/'},
@@ -105,7 +105,7 @@ exports.defineAPI3 = function(test) {
 	       }}
 	}
     });
-    
+
     var res1 = macro.resolve('https://api.github.com/users/1', {'name': 'octocat'});
 
 

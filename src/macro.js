@@ -30,7 +30,7 @@ module.__export((function() {
 
     // Registered functions namespaces
     JSONLDMacro.registeredFunctionsNS = {};
-    
+
     JSONLDMacro.evalApplyFn = function(fnText, argument, input, context) {
 	var f;
 	eval("f = "+fnText);
@@ -79,7 +79,7 @@ module.__export((function() {
 	var prefix = JSONLDMacro.reservedPrefix+(new Date()).getTime()+"__";
 	var mapping = {};
 	var transformationMapping = {};
-	var node, pathSelector, transformationFn, selectedNodes, nodeCounter, transformationFns, transformations;	
+	var node, pathSelector, transformationFn, selectedNodes, nodeCounter, transformationFns, transformations;
 	var removeTransformation, nsTransformation, onlyTransformation;
 
 	for(var i=0; i<transformation.length; i++) {
@@ -154,15 +154,16 @@ module.__export((function() {
 	    parts.pop();
 
 	if(parts[0] !== '$' && parts[0] !== '$[*]') {
-	    throw "Error parsing path. Path must start with the root object '$'";	    
+	    throw "Error parsing path. Path must start with the root object '$'";
 	} else {
-	    parts[0] = '$';	    
+	    parts[0] = '$';
 	}
 
 	return function(obj, f) {
 	    var nextSelection, val, selectArray;
 	    var selection = (obj.constructor === Array) ? obj : [obj];
 	    var currentCounter = 0;
+            var i,p = 0;
 
 	    while(currentCounter<parts.length) {
 		var currentPart = parts[currentCounter];
@@ -177,15 +178,15 @@ module.__export((function() {
 		    break;
 		case '*':
 		    nextSelection = [];
-		    for(var i=0; i<selection.length; i++) {
-			for(var p in selection[i]) {
+		    for(i=0; i<selection.length; i++) {
+			for(p in selection[i]) {
 			    nextSelection.push(selection[i][p]);
 			}
 		    }
 		    break;
 		case '':
 		    nextSelection = [];
-		    for(var i=0; i<selection.length; i++) {
+		    for(i=0; i<selection.length; i++) {
 			nextSelection = nextSelection.concat(JSONLDMacro._childrenRecursive(selection[i]));
 		    }
 		    break;
@@ -197,7 +198,7 @@ module.__export((function() {
 		    } else {
 			selectArray = false;
 		    }
-		    for(var i=0; i<selection.length; i++) {
+		    for(i=0; i<selection.length; i++) {
 			val = selection[i][currentPart];
 			if(val !== undefined) {
 			    if(selectArray && val.constructor === Array) {
@@ -226,16 +227,16 @@ module.__export((function() {
 	    }
 
 	    if(f != null) {
-		for(var i=0; i<selection.length; i++) {
+		for(i=0; i<selection.length; i++) {
 		    f(selection[i], null);
 		}
 	    }
 
 	    return selection;
-	}
+	};
     };
 
-    /** 
+    /**
      * @doc
      * Recursively collect all the children objects of a
      * node passes as the function argument.
@@ -244,7 +245,7 @@ module.__export((function() {
 	var children = [];
 	var pending = [obj];
 	var next;
-	
+
 	while(pending.length != 0) {
 	    next = pending.pop();
 	    children.push(next);
@@ -277,7 +278,7 @@ module.__export((function() {
 	    transformationSpecification = specification[path];
 	    nodeTransformation = {};
 	    for(var name in transformationSpecification) {
-		transformationFn = this.buildTransformationFunction(name , 
+		transformationFn = this.buildTransformationFunction(name ,
 								    transformationSpecification[name]);
 		nodeTransformation[name] = transformationFn;
 	    }
@@ -359,7 +360,7 @@ module.__export((function() {
 				throw(e);
 			    }
 			}
-		    
+
 			obj[p] = id;
 			return obj;
 		    };
@@ -376,7 +377,7 @@ module.__export((function() {
 	    }
 
 	    return tmp;
-	}
+	};
     };
 
     /**
@@ -425,7 +426,7 @@ module.__export((function() {
 		    continue;
 		if(p.indexOf('@') === 0)
 		    continue;
-		
+
 		if(mapping[p] != null) {
 		    newp = mapping[p]+":"+p;
 		    if(obj[newp] == null) {
@@ -468,7 +469,7 @@ module.__export((function() {
 			delete obj[p];
 		    }
 		}
-		
+
 	    }
 	    return obj;
 	}
@@ -548,7 +549,7 @@ module.__export((function() {
 		for(var i=0; i<operations.length; i++) {
 		    type = JSONLDMacro.applyOperation(operations[i], type, obj);
 		}
-		
+
 		obj['@type'] = type;
 		return obj;
 	    };
@@ -576,7 +577,7 @@ module.__export((function() {
 		for(var i=0; i<operations.length; i++) {
 		    id = JSONLDMacro.applyOperation(operations[i], id, obj);
 		}
-	    
+
 		obj['@id'] = id;
 	    } catch (e) {
 		if(JSONLDMacro.behaviour === 'strict') {
@@ -590,7 +591,7 @@ module.__export((function() {
 	};
     };
 
-    /** 
+    /**
      * @doc
      * Transforms the context of an JSON object merging it with the context
      * passed as an argument
@@ -600,13 +601,13 @@ module.__export((function() {
 	    var found;
 	    var cloned = JSON.parse(JSON.stringify(body));
 	    var oldContext = obj['@context'] || {};
-	    
-	    if(typeof(oldContext) === 'string') {		
+
+	    if(typeof(oldContext) === 'string') {
                 // ** old context is a string
 
 		if(typeof(cloned) === 'string') {
 		    // string - string
-		    obj['@context'] = [oldContext, cloned];		    
+		    obj['@context'] = [oldContext, cloned];
 		} else if(typeof(cloned) === 'object' && cloned.constructor === Array) {
 		    // string - array
 		    found = false;
@@ -628,7 +629,7 @@ module.__export((function() {
                 // ** old context is an array
 		if(typeof(cloned) === 'string') {
 		    // array - string
-		    obj['@context'] = [cloned, oldContext];		    
+		    obj['@context'] = [cloned, oldContext];
 		} else if(typeof(cloned) === 'object' && cloned.constructor === Array) {
 		    // array - array
 		    var obja = null;
@@ -683,7 +684,7 @@ module.__export((function() {
 
 		if(typeof(cloned) === 'string') {
 		    // object - string
-		    obj['@context'] = [cloned, oldContext];		    
+		    obj['@context'] = [cloned, oldContext];
 		} else if(typeof(cloned) === 'object' && cloned.constructor === Array) {
 		    // object - array
 		    var newContext = [];
@@ -709,7 +710,7 @@ module.__export((function() {
 			objContext[p] = cloned[p];
 		    }
 		    obj['@context'] = objContext;
-		}		
+		}
 	    }
 
 	    return obj;
@@ -783,7 +784,7 @@ module.__export((function() {
 		}
 	    }
 	}
-	
+
     };
 
     JSONLDMacro.parseUrlPath = function(urlPath) {
