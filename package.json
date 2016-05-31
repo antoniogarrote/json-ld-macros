@@ -1,0 +1,22 @@
+{
+  "name": "json-ld-macros",
+  "version": "0.0.3",
+  "description": "Declarative transformation of JSON into JSON-LD",
+  "main": "src/macro.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/antoniogarrote/json-ld-macros"
+  },
+  "keywords": [
+    "json-ld"
+  ],
+  "author": "Antonio Garrote",
+  "license": "MIT",
+  "readmeFilename": "README.md",
+  "devDependencies": {
+    "gulp": "^3.9.1",
+    "gulp-nodeunit": "0.0.5",
+    "jsonld": "^0.4.11",
+    "rdfstore": "^0.9.10"
+  }
+}
