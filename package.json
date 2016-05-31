@@ -18,5 +18,8 @@
     "gulp-nodeunit": "0.0.5",
     "jsonld": "^0.4.11",
     "rdfstore": "^0.9.10"
+  },
+  "dependencies": {
+    "uri-templates": "^0.2.0"
   }
 }

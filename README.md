@@ -12,7 +12,7 @@ A demo is available [here](http://antoniogarrote.github.com/json-ld-macros/) .
     macros.registerAPI({
 
       // URI template for a remote service (Github Users' API)
-      "https://api.github.com/users/*":
+      "https://api.github.com/users/{username}":
 
       {"$": // selects the root node / list of root nodes of the JSON document
 
@@ -63,7 +63,7 @@ The following sections describe how to declare URI patterns, node selectors and 
 
 ### URI Patterns
 
-URI patterns are regular URIs where variable parts of the path, like identifiers,  can be replaced by the '*'. Several URI patterns can be assigned to the same transformation when describing an API separating each pattern by ",". Blank spaces between patterns are ignored. When a path is evaluated trying to match a provided URI request parameters are ignored.
+URI patterns are regular URLs patterns as defined in [RFC6570](https://tools.ietf.org/html/rfc6570).
 
 ### Node Selectors
 
@@ -177,8 +177,8 @@ The following code shows an example of how a function can be declared in an API 
         'test:f': 'function(argument, input, obj){ return "the "+argument+" "+input }'
       },
 
-      "https://api.github.com/users/*,\
-       https://api.github.com/users/*/friends/*":
+      "https://api.github.com/users/{username},\
+       https://api.github.com/users/{username}/following/{other_user}":
       {
          '$': {'@ns': {'ns:default': 'gh'},
                '@context': {'gh':'http://socialrdf.org/github/'},

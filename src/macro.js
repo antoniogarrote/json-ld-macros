@@ -17,6 +17,8 @@ if(typeof(module) === 'undefined') {
     };
 }
 
+var uriTemplates = require('uri-templates');
+
 module.__export((function() {
     var JSONLDMacro = {};
 
@@ -787,12 +789,33 @@ module.__export((function() {
 
     };
 
-    JSONLDMacro.parseUrlPath = function(urlPath) {
-	var componentExpression = "[^\/\#]+";
-	urlPath = urlPath.replace(/\*/g,componentExpression);
-	var re = new RegExp("^"+urlPath+"$");
+    // Testing URLs we don't accept matches including slashes
+    // with the exception of {*} bindings.
+    var testUrl = function(template, value) {
+        var res = template.fromUri(value);
+        if(res == null) {
+            return false;
+        } else {
+            for(var p in res) {
+                if(p !== "" && res[p].indexOf("/") !== -1) {
+                    return false;
+                }
+            }
+            return true;
+        }
+    };
 
-	return re;
+    JSONLDMacro.parseUrlPath = function(urlPath) {
+        var template = uriTemplates(urlPath);
+        if(template != null) {
+            template._test = template.test;
+            template.test = function(url) {
+                return testUrl(template,url);
+            };
+            return template;
+        } else {
+            return null;
+        }
     };
 
     JSONLDMacro.apiPaths = [];

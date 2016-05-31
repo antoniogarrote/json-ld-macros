@@ -2,14 +2,14 @@ var macro = require('../src/macro');
 var rdfstore = require('rdfstore');
 
 exports.urlExpDef = function(test) {
-    var path = macro.parseUrlPath("https://api.github.com/users/*");
+    var path = macro.parseUrlPath("https://api.github.com/users/{username}");
 
     test.ok(path.test("https://api.github.com/users/1"));
     test.ok(path.test("https://api.github.com/us/ers/1") === false);
     test.ok(path.test("https://api.github.com/us#ers/1") === false);
     test.ok(path.test("https://api.github.com/users/1/other") === false);
 
-    path = macro.parseUrlPath("https://api.github.com/users/*/other/*#me");
+    path = macro.parseUrlPath("https://api.github.com/users/{username}/other/{contact}#me");
 
     test.ok(path.test("https://api.github.com/users/octocat/other/thing#me"));
     test.ok(path.test("https://api.github.com/users/octocat/and/other/thing#me") === false);
@@ -20,24 +20,21 @@ exports.urlExpDef = function(test) {
 exports.defineAPI = function(test) {
     macro.clearAPIs();
     macro.registerAPI({
-	"https://api.github.com/users/*":
+	"https://api.github.com/users/{username}":
 
 	{'$': {'@ns': {'ns:default': 'gh'},
 	       '@context': {'gh':'http://socialrdf.org/github/'},
 	       '@type': 'http://socialrdf.org/github/User'}},
 
 
-	"https://api.github.com/users/*/commits/*":
+	"https://api.github.com/users/{username}/commits/{sha1}":
 
 	{'$': {'@ns': {'ns:default': 'gh'},
 	       '@context': {'gh':'http://socialrdf.org/github/'},
 	       '@type': 'http://socialrdf.org/github/Commit'}}
     });
-
     var res1 = macro.resolve('https://api.github.com/users/1?this=will&be=ignored', {'name': 'octocat'});
-
     var res2 = macro.resolve('https://api.github.com/users/1/commits/234a232bc2', {'name': 'test commit'});
-
 
     rdfstore.create(function(err, store) {
 	store.load('application/json', res1, function(err, loaded) {
@@ -64,8 +61,8 @@ exports.defineAPI = function(test) {
 exports.defineAPI2 = function(test) {
     macro.clearAPIs();
     macro.registerAPI({
-	"https://api.github.com/users/*,\
-         https://api.github.com/users/*/friends/*":
+	"https://api.github.com/users/{username},\
+         https://api.github.com/users/{username}/friends/{contact}":
 
 	{'$': {'@ns': {'ns:default': 'gh'},
 	       '@context': {'gh':'http://socialrdf.org/github/'},
@@ -93,8 +90,8 @@ exports.defineAPI3 = function(test) {
 	    'test:f': 'function(argument, input, obj){ return "the "+argument+" "+input }'
 	},
 
-	"https://api.github.com/users/*,\
-         https://api.github.com/users/*/friends/*":
+	"https://api.github.com/users/{username},\
+         https://api.github.com/users/{username}/friends/{contact}":
 	{
 	 '$': {'@ns': {'ns:default': 'gh'},
 	       '@context': {'gh':'http://socialrdf.org/github/'},
