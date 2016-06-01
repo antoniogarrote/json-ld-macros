@@ -1,6 +1,7 @@
 # JSON-LD Macros [![Build Status](https://travis-ci.org/antoniogarrote/json-ld-macros.svg?branch=master)](https://travis-ci.org/antoniogarrote/json-ld-macros)
 
 JSON-LD Macros is a library to define declarative transformations of JSON objects obtained from a remote web service into JSON-LD objects. The ultimate goal of the library is to make it easier the process of consuming JSON APIs from RDF/JSON-LD applications. Similar ideas for transforming JSON documents into RDF have been explored in projects like [jsonGRDDL](http://buzzword.org.uk/2008/jsonGRDDL/spec.20100903).
+JSON-LD Macros supports the serialisation of the macro itself as JSON-LD and the deserialisation back into the macro description.
 
 A demo is available [here](http://antoniogarrote.github.com/json-ld-macros/) .
 
@@ -57,7 +58,7 @@ Transformation bodies can consist, in some cases, in an array of objects contain
 The following grammar describes the structure of an API transformation definition:
 
 - API ::= {@declare:functionDeclarations}? , {URIPatterns: Transformation}*
-- URIPatterns ::= URIPattern[,URIPattern]*
+- URIPatterns ::= URIPattern[\\n URIPattern]*
 - Transformation ::= {NodeSelector: TransformationRules}
 - TransformationRules ::= {TransformationRuleName: TransformationRuleBody}*
 - TransformationRuleName ::= @context | @id | @type | @remove | @only | @ns | @transform
@@ -206,6 +207,10 @@ The body of the rule must be a JSON object with a single key with the name of th
 
 This rule can be used to delete properties of the selected nodes. Possible values are a single string with the name of the property to remove or an array of properties that will be removed.
 
+### @add
+
+This rule can be used to add properties of the selected nodes. The value must be a object with the properties and values to be added to the node.
+
 ### @only
 
 Collects a set of properties from the selected nodes and delete the remaining properties. Possible values for the this rule body are a single property to select or an array witht the properties that must be collected.
@@ -261,7 +266,7 @@ The following code shows an example of how a function can be declared in an API 
         'test:f': 'function(argument, input, obj){ return "the "+argument+" "+input }'
       },
 
-      "https://api.github.com/users/{username},\
+      "https://api.github.com/users/{username}\\n\
        https://api.github.com/users/{username}/following/{other_user}":
       {
          '$': {'@ns': {'ns:default': 'gh'},
@@ -279,6 +284,90 @@ The following code shows an example of how a function can be declared in an API 
 ```
 
 Function will receive three arguments, the function argument declared in the rule body, the input object from the previous function application and the context object.
+
+## JSON-LD Serialisation
+
+To export the registered macros as a JSON-LD document, the ```toJSONLD``` function can be used. The output of the serialisation is a JSON-LD document that uses a small vocabulary to expose the macro.
+The main properties in the vocabulary are:
+
+- jldm:JsonLDMacro : class for all the JSON-LD macro descriptions
+- jldm:uriTemplate : a URI template used to match the transformations of the macro.
+- jldm:specification : a property pointing to each node transformation in the macro.
+- jldm:Specification : class for all JSON-LD node transformations.
+- jldm:transformation : a transformation for a sigle JSON node.
+- jldm:Transformation : class for particular node transformations.
+- jldm:ruleName : type of node transformation '@add', '@remove', '@id', etc.
+- jldm:ruleBody : JSON encoded body for the described rule.
+
+``` javascript
+
+macro.clearAPIs();
+
+macro.registerAPI({
+"https://api.github.com/users/{username}":
+
+{https://api.github.com/users/{username}/commits/{sha1}":
+
+{'$': {'@ns': {'ns:default': 'gh'},
+	   '@context': {'gh':'http://socialrdf.org/github/'},
+	   '@type': 'http://socialrdf.org/github/Commit'}}
+});
+
+var jsonld = macro.toJSONLD();
+
+```
+The output of the previous code is the following JSON-LD document:
+
+``` json
+[
+  {
+    "@type": "jldm:JsonLDMacro",
+    "@context": {
+      "jldm": "http://jsonld-macros.org/vocab#"
+    },
+    "jldm:uriTemplate": [
+      "https://api.github.com/users/{username}/commits/{sha1}"
+    ],
+    "jldm:specification": [
+      {
+        "@type": "jldm:Specification",
+        "jldm:transformation": [
+          {
+            "@type": "jldm:Transformation",
+            "jldm:ruleName": "@ns",
+            "jldm:ruleBody": "{\"ns:default\":\"gh\"}"
+          },
+          {
+            "@type": "jldm:Transformation",
+            "jldm:ruleName": "@context",
+            "jldm:ruleBody": "{\"gh\":\"http://socialrdf.org/github/\"}"
+          },
+          {
+            "@type": "jldm:Transformation",
+            "jldm:ruleName": "@type",
+            "jldm:ruleBody": "\"http://socialrdf.org/github/Commit\""
+          }
+        ],
+        "jldm:pathSelector": "$"
+      }
+    ]
+  }
+]
+
+```
+
+
+## JSON-LD De-serialisation
+
+Macros exported as JSON-LD documents can be de-serialised using the ```fromJSONLD``` function. The function requires an instance of the [RDFStore-JS](https://github.com/antoniogarrote/rdfstore-js) module to work.
+This module is not included with the library to not increase the size of the library. If you want to use this functionality, you need to include rdfstore-js as an additional dependency into your project.
+
+``` javascript
+var rdfstore = require('rdfstore');
+macro.fromJSONLD(rdfstore, jsonld, function(err, macro){
+  // macro can be used here.
+});
+```
 
 
 ## RDFStore-JS integration

@@ -60,7 +60,7 @@ exports.defineAPI = function(test) {
 exports.defineAPI2 = function(test) {
     macro.clearAPIs();
     macro.registerAPI({
-	"https://api.github.com/users/{username},\
+	"https://api.github.com/users/{username}\\n\
          https://api.github.com/users/{username}/friends/{contact}":
 
 	{'$': {'@ns': {'ns:default': 'gh'},
@@ -89,7 +89,7 @@ exports.defineAPI3 = function(test) {
 	    'test:f': 'function(argument, input, obj){ return "the "+argument+" "+input }'
 	},
 
-	"https://api.github.com/users/{username},\
+	"https://api.github.com/users/{username}\\n\
          https://api.github.com/users/{username}/friends/{contact}":
 	{
 	 '$': {'@ns': {'ns:default': 'gh'},
